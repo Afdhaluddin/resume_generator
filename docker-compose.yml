@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resumegen-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://localhost:8081,http://localhost:80
+      # Stripe configuration
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      - STRIPE_PRICE_ID=${STRIPE_PRICE_ID:-price_placeholder}
+      - APP_FRONTEND_URL=${APP_FRONTEND_URL:-http://localhost:8081}
+      # SMTP / Email configuration (optional)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_AUTH=${SMTP_AUTH:-true}
+      - SMTP_TLS=${SMTP_TLS:-true}
+    networks:
+      - resumegen-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/resume/check-limit"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: resumegen-frontend
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - resumegen-net
+
+networks:
+  resumegen-net:
+    driver: bridge

@@ -1,0 +1,34 @@
+services:
+  backend:
+    image: resumegen-backend:latest
+    container_name: resumegen-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://localhost:80
+    networks:
+      - resumegen-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/resume/check-limit"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: resumegen-frontend:latest
+    container_name: resumegen-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - resumegen-net
+
+networks:
+  resumegen-net:
+    driver: bridge

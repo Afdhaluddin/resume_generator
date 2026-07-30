@@ -1,0 +1,39 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/resume-generator
+            
+            # Pull latest code
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Rebuild and restart
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            # Health check
+            sleep 15
+            curl -sf http://localhost:8080/api/resume/check-limit || exit 1
+            echo "Deployment successful!"

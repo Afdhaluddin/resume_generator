@@ -1,0 +1,19 @@
+# Frontend
+Dockerfile
+node_modules/
+dist/
+*.md
+.git
+.gitignore
+Dockerfile
+nginx.conf
+node_modules/
+dist/
+*.md
+.git
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
