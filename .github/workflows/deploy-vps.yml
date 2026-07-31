@@ -31,12 +31,12 @@ jobs:
             set -e
 
             APP_DIR=~/resume-generator
-            TMP_DIR=~/resume-generator-tmp
+            TIMESTAMP=$(date +%s)
+            NEW_DIR=~/resume-generator-$TIMESTAMP
             GITHUB_REPO="Afdhaluddin/resume_generator"
 
             # Create app directory
             mkdir -p $APP_DIR
-            cd $APP_DIR
 
             # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
@@ -45,26 +45,34 @@ jobs:
               echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null || true
             fi
 
-            # --- Strategy: Always download fresh tarball ---
-            # This avoids all git permission/ownership issues
-            echo "Downloading fresh code..."
-            mkdir -p $TMP_DIR
-            cd $TMP_DIR
+            # --- Strategy: Versioned directory + symlink swap ---
+            # This avoids permission issues when replacing files owned by root
+            echo "Downloading fresh code to $NEW_DIR..."
+            mkdir -p $NEW_DIR
+            cd $NEW_DIR
             curl -fsSL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
             tar -xzf main.tar.gz --strip-components=1
             rm -f main.tar.gz
 
-            # Preserve .env if it exists in the live dir
+            # Preserve .env from current live directory (follows symlink)
             if [ -f $APP_DIR/.env ]; then
               echo "Preserving existing .env..."
-              cp $APP_DIR/.env $TMP_DIR/.env
+              cp $APP_DIR/.env $NEW_DIR/.env
             fi
 
-            # Replace old code with new code
-            # Use rsync if available, otherwise manual copy
-            echo "Replacing application code..."
-            rm -rf $APP_DIR
-            mv $TMP_DIR $APP_DIR
+            # Stop running containers first (releases file locks)
+            echo "Stopping current containers..."
+            if docker ps > /dev/null 2>&1; then
+              COMPOSE_CMD="docker compose"
+            else
+              COMPOSE_CMD="sudo docker compose"
+            fi
+            $COMPOSE_CMD -f $APP_DIR/docker-compose.yml down || true
+
+            # Swap symlink to new code
+            echo "Swapping to new code..."
+            ln -sfn $NEW_DIR $APP_DIR
+
             cd $APP_DIR
 
             # Ensure .env exists
@@ -74,23 +82,16 @@ jobs:
               echo "Please edit .env with your Stripe and SMTP credentials!"
             fi
 
-            # Docker: check if deployer can run without sudo
-            if docker ps > /dev/null 2>&1; then
-              COMPOSE_CMD="docker compose"
-              DOCKER_CLEAN="docker image prune -f"
-            else
-              echo "WARNING: docker requires sudo. Trying sudo..."
-              COMPOSE_CMD="sudo docker compose"
-              DOCKER_CLEAN="sudo docker image prune -f"
-            fi
-
             # Rebuild and restart
-            $COMPOSE_CMD down || true
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
 
-            # Cleanup
-            $DOCKER_CLEAN || true
+            # Cleanup old images
+            docker image prune -f 2>/dev/null || sudo docker image prune -f 2>/dev/null || true
+
+            # Cleanup old deploy directories (keep last 2)
+            echo "Cleaning up old deployments..."
+            ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
 
             # Health check
             echo "Waiting for services to start..."
