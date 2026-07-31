@@ -37,20 +37,17 @@ jobs:
             mkdir -p $APP_DIR
             cd $APP_DIR
             
-            # Fix DNS if needed (some VPS providers have DNS issues)
+            # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
               echo "WARNING: DNS resolution failed. Adding Google DNS..."
               echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
               echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
             fi
             
-            # Fix git ownership issue (when repo was created manually by different user)
+            # Fix git ownership issue
             git config --global --add safe.directory $APP_DIR 2>/dev/null || true
             
-            # Clone or pull latest code
-            if [ -d .git ]; then
-              echo "Updating existing repo..."
-              git fetch origin
+            # Update or clone code
             if [ -d .git ]; then
               echo "Updating existing repo..."
               git fetch origin || {
@@ -80,10 +77,8 @@ jobs:
             
             # Check if docker requires sudo
             if groups | grep -q 'docker'; then
-              DOCKER_CMD="docker"
               COMPOSE_CMD="docker compose"
             else
-              DOCKER_CMD="sudo docker"
               COMPOSE_CMD="sudo docker compose"
             fi
             
@@ -92,9 +87,8 @@ jobs:
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
             
-            # Cleanup old images
-            $DOCKER_CMD image prune -f
-            $DOCKER_CMD builder prune -f
+            # Cleanup
+            docker image prune -f 2>/dev/null || sudo docker image prune -f
             
             # Health check
             echo "Waiting for services to start..."
