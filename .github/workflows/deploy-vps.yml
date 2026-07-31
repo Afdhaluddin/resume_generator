@@ -5,10 +5,19 @@ on:
     branches: [main]
 
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -19,11 +28,28 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/resume-generator
+            set -e
             
-            # Pull latest code
-            git fetch origin
-            git reset --hard origin/main
+            APP_DIR=/opt/resume-generator
+            
+            # Create app directory if it doesn't exist
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+            
+            # Clone or pull latest code
+            if [ -d .git ]; then
+              git fetch origin
+              git reset --hard origin/main
+            else
+              git clone https://github.com/Afdhaluddin/resume_generator.git .
+            fi
+            
+            # Ensure .env exists (create from example if not present)
+            if [ ! -f .env ]; then
+              echo "WARNING: .env not found. Creating from .env.example"
+              cp .env.example .env
+              echo "Please edit .env with your Stripe and SMTP credentials!"
+            fi
             
             # Rebuild and restart
             docker compose down
@@ -32,8 +58,25 @@ jobs:
             
             # Cleanup old images
             docker image prune -f
+            docker builder prune -f
             
             # Health check
-            sleep 15
-            curl -sf http://localhost:8080/api/resume/check-limit || exit 1
-            echo "Deployment successful!"
+            echo "Waiting for services to start..."
+            sleep 20
+            
+            BACKEND_HEALTH=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
+            FRONTEND_HEALTH=$(curl -sf http://localhost:80/ > /dev/null && echo "OK" || echo "FAIL")
+            
+            if [ "$BACKEND_HEALTH" = "OK" ] && [ "$FRONTEND_HEALTH" = "OK" ]; then
+              echo "========================================"
+              echo " Deployment successful!"
+              echo "========================================"
+              echo "Frontend: http://${{ secrets.VPS_HOST }}"
+              echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
+              echo "Admin:    http://${{ secrets.VPS_HOST }}/#admin"
+              docker compose ps
+            else
+              echo "ERROR: Health check failed!"
+              docker compose logs --tail 50
+              exit 1
+            fi

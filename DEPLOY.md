@@ -1,42 +1,63 @@
-# ResumeForge - Docker Deployment Guide
+# ResumeForge - Deployment Guide
 
-## Quick Start (On Your VPS)
+## Quick Deploy (GitHub Actions)
 
-### 1. Upload the project
+### 1. Add Repository Secrets
 
-Copy the entire `resume-generator` folder to your VPS:
+Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret
 
+Add these secrets:
+
+| Secret Name | Description | Example |
+|------------|-------------|---------|
+| `VPS_HOST` | Your VPS IP address or domain | `192.168.1.100` or `resumeforge.app` |
+| `VPS_USER` | SSH username for your VPS | `root` or `ubuntu` |
+| `VPS_SSH_KEY` | Private SSH key (pem format) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+
+**How to get the SSH key:**
 ```bash
-# From your local machine
-scp -r resume-generator user@your-vps-ip:/opt/
+# On your local machine (the one that can SSH into your VPS)
+cat ~/.ssh/id_rsa
+# Copy the entire output including BEGIN/END lines
 ```
 
-### 2. Run the deployment script
+### 2. Push to main branch
+
+Every push to `main` will:
+1. Run CI (build + test)
+2. Build Docker images
+3. Deploy to your VPS automatically
+
+Or trigger manually: GitHub repo → Actions → Deploy to VPS → Run workflow
+
+---
+
+## Manual Deploy (On Your VPS)
+
+### Prerequisites
+- Docker & Docker Compose installed
+- Git installed
+
+### Steps
 
 ```bash
+# 1. Clone the repository
 ssh user@your-vps-ip
-cd /opt/resume-generator
-chmod +x deploy.sh
-sudo ./deploy.sh
-```
-
-Or manually:
-
-```bash
+git clone https://github.com/Afdhaluddin/resume_generator.git /opt/resume-generator
 cd /opt/resume-generator
 
-# Build images
-docker compose build
+# 2. Configure environment
+cp .env.example .env
+nano .env
+# Fill in your Stripe and SMTP credentials
 
-# Start services
-docker compose up -d
+# 3. Deploy
+docker compose up --build -d
+
+# 4. Verify
+docker compose ps
+curl http://localhost:8080/api/resume/check-limit
 ```
-
-### 3. Access the app
-
-Open your browser to: `http://YOUR_VPS_IP/`
-
-The backend API is also available at: `http://YOUR_VPS_IP:8080`
 
 ---
 
@@ -45,7 +66,7 @@ The backend API is also available at: `http://YOUR_VPS_IP:8080`
 ```
 User Browser
      |
-     | HTTP port 80
+     | HTTP port 80 (or 8081)
      v
 +-------------+       +------------------+
 |   Nginx     |------>|  Spring Boot     |
@@ -55,18 +76,30 @@ User Browser
 ```
 
 - **Frontend (nginx)**: Serves the Vue.js SPA and proxies `/api/*` to the backend
-- **Backend (Spring Boot)**: Handles PDF generation, IP limiting, and resume caching
-- **No database needed**: IP limits and resume cache are stored in-memory
+- **Backend (Spring Boot)**: Handles PDF generation, payments, email, admin API
+- **No database needed**: IP limits, resume cache, and payment records are stored in-memory
 
 ---
 
 ## Environment Variables
 
+### Required
+| Variable | Description |
+|----------|-------------|
+| `STRIPE_SECRET_KEY` | Stripe secret key (test or live) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `STRIPE_PRICE_ID` | Stripe price ID for unlimited plan |
+| `APP_FRONTEND_URL` | Your domain (e.g., `https://resumeforge.app`) |
+
+### Optional (for email receipts)
 | Variable | Default | Description |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile (prod uses `application-prod.properties`) |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost,http://localhost:80` | Comma-separated allowed CORS origins |
-| `resume.free-limit` | `2` | Free resume generations per IP |
+|----------|---------|-------------|
+| `SMTP_HOST` | — | SMTP server host |
+| `SMTP_PORT` | 587 | SMTP server port |
+| `SMTP_USER` | — | SMTP username |
+| `SMTP_PASS` | — | SMTP password |
+| `SMTP_AUTH` | true | Enable SMTP auth |
+| `SMTP_TLS` | true | Enable TLS |
 
 ---
 
@@ -91,10 +124,8 @@ docker compose up -d
 # Check running containers
 docker compose ps
 
-# Shell into backend
+# Shell into containers
 docker exec -it resumegen-backend sh
-
-# Shell into frontend
 docker exec -it resumegen-frontend sh
 ```
 
@@ -102,27 +133,18 @@ docker exec -it resumegen-frontend sh
 
 ## Updating After Code Changes
 
-### Frontend changes:
+### With GitHub Actions (Recommended)
+Just push to `main`:
 ```bash
-cd /opt/resumegen/frontend
-# Edit files, then:
-cd /opt/resumegen
-docker compose build frontend
-docker compose up -d frontend
+git add .
+git commit -m "feat: your change"
+git push origin main
 ```
 
-### Backend changes:
+### Manual update on VPS
 ```bash
-cd /opt/resumegen/backend
-# Edit files, then:
-cd /opt/resumegen
-docker compose build backend
-docker compose up -d backend
-```
-
-### Both:
-```bash
-cd /opt/resumegen
+cd /opt/resume-generator
+git pull origin main
 docker compose down
 docker compose build --no-cache
 docker compose up -d
@@ -130,29 +152,38 @@ docker compose up -d
 
 ---
 
-## Custom Domain / HTTPS (Optional)
+## Custom Domain / HTTPS
 
-To use a custom domain with HTTPS, update `frontend/nginx.conf`:
+### Using Cloudflare (Recommended)
+1. Point your domain to your VPS IP
+2. Enable Cloudflare proxy (orange cloud)
+3. SSL/TLS → Full (strict)
 
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    return 301 https://$server_name$request_uri;
-}
+### Using Let's Encrypt with Certbot
+```bash
+# Install certbot
+docker run -it --rm \
+  -v /etc/letsencrypt:/etc/letsencrypt \
+  -v /var/lib/letsencrypt:/var/lib/letsencrypt \
+  certbot/certbot certonly --standalone -d yourdomain.com
 
-server {
-    listen 443 ssl;
-    server_name yourdomain.com;
-    
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-    
-    # ... rest of config
-}
+# Update frontend/nginx.conf to use SSL certificates
 ```
 
-Or use a reverse proxy like **Nginx Proxy Manager** or **Traefik** with automatic Let's Encrypt.
+### Using Nginx Proxy Manager
+Deploy alongside the app:
+```yaml
+# Add to docker-compose.yml
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+```
 
 ---
 
@@ -160,25 +191,33 @@ Or use a reverse proxy like **Nginx Proxy Manager** or **Traefik** with automati
 
 ### Port 80 already in use
 ```bash
-# Check what's using port 80
 sudo lsof -i :80
-
 # Change frontend port in docker-compose.yml:
 # ports:
-#   - "8081:80"  # Use 8081 instead of 80
+#   - "8081:80"
 ```
 
 ### Backend won't start
 ```bash
 docker compose logs backend
-# Common issues: Java version mismatch, port conflict
+# Common issues: Stripe keys missing, port conflict
 ```
 
-### CORS errors in browser
-- Since nginx proxies API requests, CORS shouldn't be needed in production
-- If accessing backend directly, update `CORS_ALLOWED_ORIGINS` in docker-compose.yml
+### CORS errors
+- Nginx proxies API requests, so CORS should not be needed in production
+- If accessing backend directly, update `CORS_ALLOWED_ORIGINS`
 
-### IP limit not working correctly
-- IP tracking is in-memory and resets on container restart
-- For production, consider adding a persistent store (Redis/DB)
-- The backend reads `X-Forwarded-For` and `X-Real-IP` headers from nginx
+### Emails not sending
+- Check SMTP credentials in `.env`
+- If SMTP not configured, receipts are logged to console only
+- Check backend logs: `docker compose logs backend | grep -i email`
+
+---
+
+## GitHub Actions Workflows
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| CI | `.github/workflows/ci.yml` | Push to main/develop, PRs | Build & test |
+| Docker Publish | `.github/workflows/docker-publish.yml` | Push to main, tags | Build & push images to GHCR |
+| Deploy to VPS | `.github/workflows/deploy-vps.yml` | Push to main, manual | SSH deploy to VPS |
