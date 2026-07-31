@@ -31,6 +31,7 @@ jobs:
             set -e
 
             APP_DIR=~/resume-generator
+            TMP_DIR=~/resume-generator-tmp
             GITHUB_REPO="Afdhaluddin/resume_generator"
 
             # Create app directory
@@ -40,37 +41,31 @@ jobs:
             # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
               echo "WARNING: DNS resolution failed. Adding Google DNS..."
-              echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-              echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
+              echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null || true
+              echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null || true
             fi
 
-            # Fix git ownership issue
-            git config --global --add safe.directory $APP_DIR 2>/dev/null || true
+            # --- Strategy: Always download fresh tarball ---
+            # This avoids all git permission/ownership issues
+            echo "Downloading fresh code..."
+            mkdir -p $TMP_DIR
+            cd $TMP_DIR
+            curl -fsSL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
+            tar -xzf main.tar.gz --strip-components=1
+            rm -f main.tar.gz
 
-            # Update or clone code
-            if [ -d .git ]; then
-              echo "Updating existing repo..."
-              # Fix ownership if repo was created by different user
-              if [ ! -w .git/FETCH_HEAD ]; then
-                echo "Fixing ownership..."
-                sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
-              fi
-              git fetch origin && git reset --hard origin/main || {
-                echo "Git update failed, removing .git and downloading fresh..."
-                sudo rm -rf .git 2>/dev/null || rm -rf .git 2>/dev/null || true
-                curl -sL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
-                tar -xzf main.tar.gz --strip-components=1
-                rm -f main.tar.gz
-              }
-            else
-              echo "Cloning fresh repo..."
-              git clone --depth 1 https://github.com/$GITHUB_REPO.git . || {
-                echo "Git clone failed, trying download..."
-                curl -sL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
-                tar -xzf main.tar.gz --strip-components=1
-                rm -f main.tar.gz
-              }
+            # Preserve .env if it exists in the live dir
+            if [ -f $APP_DIR/.env ]; then
+              echo "Preserving existing .env..."
+              cp $APP_DIR/.env $TMP_DIR/.env
             fi
+
+            # Replace old code with new code
+            # Use rsync if available, otherwise manual copy
+            echo "Replacing application code..."
+            rm -rf $APP_DIR
+            mv $TMP_DIR $APP_DIR
+            cd $APP_DIR
 
             # Ensure .env exists
             if [ ! -f .env ]; then
@@ -79,11 +74,14 @@ jobs:
               echo "Please edit .env with your Stripe and SMTP credentials!"
             fi
 
-            # Check if docker requires sudo
-            if groups | grep -q 'docker'; then
+            # Docker: check if deployer can run without sudo
+            if docker ps > /dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
+              DOCKER_CLEAN="docker image prune -f"
             else
+              echo "WARNING: docker requires sudo. Trying sudo..."
               COMPOSE_CMD="sudo docker compose"
+              DOCKER_CLEAN="sudo docker image prune -f"
             fi
 
             # Rebuild and restart
@@ -92,7 +90,7 @@ jobs:
             $COMPOSE_CMD up -d
 
             # Cleanup
-            docker image prune -f 2>/dev/null || sudo docker image prune -f
+            $DOCKER_CLEAN || true
 
             # Health check
             echo "Waiting for services to start..."
