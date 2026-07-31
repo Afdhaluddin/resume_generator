@@ -30,7 +30,7 @@ jobs:
           script: |
             set -e
             
-            APP_DIR=/opt/resume-generator
+            APP_DIR=~/resume-generator
             
             # Create app directory if it doesn't exist
             mkdir -p $APP_DIR
@@ -51,14 +51,23 @@ jobs:
               echo "Please edit .env with your Stripe and SMTP credentials!"
             fi
             
+            # Check if docker requires sudo
+            if groups | grep -q 'docker'; then
+              DOCKER_CMD="docker"
+              COMPOSE_CMD="docker compose"
+            else
+              DOCKER_CMD="sudo docker"
+              COMPOSE_CMD="sudo docker compose"
+            fi
+            
             # Rebuild and restart
-            docker compose down
-            docker compose build --no-cache
-            docker compose up -d
+            $COMPOSE_CMD down || true
+            $COMPOSE_CMD build --no-cache
+            $COMPOSE_CMD up -d
             
             # Cleanup old images
-            docker image prune -f
-            docker builder prune -f
+            $DOCKER_CMD image prune -f
+            $DOCKER_CMD builder prune -f
             
             # Health check
             echo "Waiting for services to start..."
@@ -74,9 +83,9 @@ jobs:
               echo "Frontend: http://${{ secrets.VPS_HOST }}"
               echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
               echo "Admin:    http://${{ secrets.VPS_HOST }}/#admin"
-              docker compose ps
+              $COMPOSE_CMD ps
             else
               echo "ERROR: Health check failed!"
-              docker compose logs --tail 50
+              $COMPOSE_CMD logs --tail 50
               exit 1
             fi
