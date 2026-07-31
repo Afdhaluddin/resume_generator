@@ -29,35 +29,39 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            
+
             APP_DIR=~/resume-generator
             GITHUB_REPO="Afdhaluddin/resume_generator"
-            
+
             # Create app directory
             mkdir -p $APP_DIR
             cd $APP_DIR
-            
+
             # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
               echo "WARNING: DNS resolution failed. Adding Google DNS..."
               echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
               echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
             fi
-            
+
             # Fix git ownership issue
             git config --global --add safe.directory $APP_DIR 2>/dev/null || true
-            
+
             # Update or clone code
             if [ -d .git ]; then
               echo "Updating existing repo..."
-              git fetch origin || {
-                echo "Git fetch failed, trying fresh clone..."
-                rm -rf .git
-                git clone --depth 1 https://github.com/$GITHUB_REPO.git tmp-clone
-                cp -r tmp-clone/. .
-                rm -rf tmp-clone
+              # Fix ownership if repo was created by different user
+              if [ ! -w .git/FETCH_HEAD ]; then
+                echo "Fixing ownership..."
+                sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
+              fi
+              git fetch origin && git reset --hard origin/main || {
+                echo "Git update failed, removing .git and downloading fresh..."
+                sudo rm -rf .git 2>/dev/null || rm -rf .git 2>/dev/null || true
+                curl -sL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
+                tar -xzf main.tar.gz --strip-components=1
+                rm -f main.tar.gz
               }
-              git reset --hard origin/main || true
             else
               echo "Cloning fresh repo..."
               git clone --depth 1 https://github.com/$GITHUB_REPO.git . || {
@@ -67,36 +71,36 @@ jobs:
                 rm -f main.tar.gz
               }
             fi
-            
+
             # Ensure .env exists
             if [ ! -f .env ]; then
               echo "WARNING: .env not found. Creating from .env.example"
               cp .env.example .env
               echo "Please edit .env with your Stripe and SMTP credentials!"
             fi
-            
+
             # Check if docker requires sudo
             if groups | grep -q 'docker'; then
               COMPOSE_CMD="docker compose"
             else
               COMPOSE_CMD="sudo docker compose"
             fi
-            
+
             # Rebuild and restart
             $COMPOSE_CMD down || true
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
-            
+
             # Cleanup
             docker image prune -f 2>/dev/null || sudo docker image prune -f
-            
+
             # Health check
             echo "Waiting for services to start..."
             sleep 20
-            
+
             BACKEND_HEALTH=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
             FRONTEND_HEALTH=$(curl -sf http://localhost:80/ > /dev/null && echo "OK" || echo "FAIL")
-            
+
             if [ "$BACKEND_HEALTH" = "OK" ] && [ "$FRONTEND_HEALTH" = "OK" ]; then
               echo "========================================"
               echo " Deployment successful!"
