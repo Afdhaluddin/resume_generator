@@ -31,20 +31,41 @@ jobs:
             set -e
             
             APP_DIR=~/resume-generator
+            GITHUB_REPO="Afdhaluddin/resume_generator"
             
-            # Create app directory if it doesn't exist
+            # Create app directory
             mkdir -p $APP_DIR
             cd $APP_DIR
             
-            # Clone or pull latest code
-            if [ -d .git ]; then
-              git fetch origin
-              git reset --hard origin/main
-            else
-              git clone https://github.com/Afdhaluddin/resume_generator.git .
+            # Fix DNS if needed (some VPS providers have DNS issues)
+            if ! nslookup github.com > /dev/null 2>&1; then
+              echo "WARNING: DNS resolution failed. Adding Google DNS..."
+              echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+              echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
             fi
             
-            # Ensure .env exists (create from example if not present)
+            # Clone or pull latest code
+            if [ -d .git ]; then
+              echo "Updating existing repo..."
+              git fetch origin || {
+                echo "Git fetch failed, trying fresh clone..."
+                rm -rf .git
+                git clone --depth 1 https://github.com/$GITHUB_REPO.git tmp-clone
+                cp -r tmp-clone/. .
+                rm -rf tmp-clone
+              }
+              git reset --hard origin/main || true
+            else
+              echo "Cloning fresh repo..."
+              git clone --depth 1 https://github.com/$GITHUB_REPO.git . || {
+                echo "Git clone failed, trying download..."
+                curl -sL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
+                tar -xzf main.tar.gz --strip-components=1
+                rm -f main.tar.gz
+              }
+            fi
+            
+            # Ensure .env exists
             if [ ! -f .env ]; then
               echo "WARNING: .env not found. Creating from .env.example"
               cp .env.example .env
