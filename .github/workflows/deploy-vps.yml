@@ -35,9 +35,6 @@ jobs:
             NEW_DIR=~/resume-generator-$TIMESTAMP
             GITHUB_REPO="Afdhaluddin/resume_generator"
 
-            # Create app directory
-            mkdir -p $APP_DIR
-
             # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
               echo "WARNING: DNS resolution failed. Adding Google DNS..."
@@ -46,7 +43,6 @@ jobs:
             fi
 
             # --- Strategy: Versioned directory + symlink swap ---
-            # This avoids permission issues when replacing files owned by root
             echo "Downloading fresh code to $NEW_DIR..."
             mkdir -p $NEW_DIR
             cd $NEW_DIR
@@ -54,32 +50,87 @@ jobs:
             tar -xzf main.tar.gz --strip-components=1
             rm -f main.tar.gz
 
-            # Preserve .env from current live directory (follows symlink)
+            # Verify extraction worked
+            if [ ! -f docker-compose.yml ]; then
+              echo "ERROR: tarball extraction failed - docker-compose.yml not found"
+              exit 1
+            fi
+
+            # Preserve .env from current live directory
             if [ -f $APP_DIR/.env ]; then
               echo "Preserving existing .env..."
               cp $APP_DIR/.env $NEW_DIR/.env
             fi
 
-            # Stop running containers first (releases file locks)
-            echo "Stopping current containers..."
+            # Determine docker compose command
             if docker ps > /dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
             else
+              echo "WARNING: docker requires sudo. Trying sudo..."
               COMPOSE_CMD="sudo docker compose"
             fi
-            $COMPOSE_CMD -f $APP_DIR/docker-compose.yml down || true
 
-            # Swap symlink to new code
-            echo "Swapping to new code..."
-            ln -sfn $NEW_DIR $APP_DIR
+            # Stop running containers from old location
+            echo "Stopping current containers..."
+            if [ -L $APP_DIR ]; then
+              # APP_DIR is a symlink - use the target
+              OLD_TARGET=$(readlink -f $APP_DIR)
+              $COMPOSE_CMD -f $OLD_TARGET/docker-compose.yml down || true
+            elif [ -d $APP_DIR ] && [ -f $APP_DIR/docker-compose.yml ]; then
+              # APP_DIR is a real directory with docker-compose
+              $COMPOSE_CMD -f $APP_DIR/docker-compose.yml down || true
+            else
+              echo "No existing deployment found, skipping stop..."
+            fi
+
+            # Handle APP_DIR: if it's a real directory, move it aside
+            # If it's a symlink, remove it
+            echo "Setting up app directory..."
+            if [ -d $APP_DIR ] && [ ! -L $APP_DIR ]; then
+              # Real directory - move aside
+              mv $APP_DIR $APP_DIR.backup-$TIMESTAMP
+              echo "Moved old directory to $APP_DIR.backup-$TIMESTAMP"
+            elif [ -L $APP_DIR ]; then
+              # Symlink - remove it
+              rm -f $APP_DIR
+            fi
+
+            # Create symlink to new code
+            ln -s $NEW_DIR $APP_DIR
+            echo "Symlinked $APP_DIR -> $NEW_DIR"
 
             cd $APP_DIR
 
             # Ensure .env exists
             if [ ! -f .env ]; then
-              echo "WARNING: .env not found. Creating from .env.example"
-              cp .env.example .env
-              echo "Please edit .env with your Stripe and SMTP credentials!"
+              if [ -f .env.example ]; then
+                echo "WARNING: .env not found. Creating from .env.example"
+                cp .env.example .env
+                echo "Please edit .env with your Stripe and SMTP credentials!"
+              else
+                echo "WARNING: No .env or .env.example found. Creating minimal .env"
+                cat > .env << 'ENVEOF'
+# Stripe
+STRIPE_SECRET_KEY=sk_test_your_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
+STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
+STRIPE_PRICE_ID=price_your_price_here
+
+# Email (SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+EMAIL_FROM=noreply@resumeforge.app
+
+# Admin
+ADMIN_API_KEY=change-me-admin-key
+
+# App
+FREE_RESUME_LIMIT=2
+ENVEOF
+                echo "Please edit .env with your actual credentials!"
+              fi
             fi
 
             # Rebuild and restart
@@ -92,6 +143,8 @@ jobs:
             # Cleanup old deploy directories (keep last 2)
             echo "Cleaning up old deployments..."
             ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
+            # Also clean up old backups
+            ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
 
             # Health check
             echo "Waiting for services to start..."
