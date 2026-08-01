@@ -37,18 +37,19 @@ jobs:
             echo "Timestamp: $TIMESTAMP"
             echo "New dir: $NEW_DIR"
 
-            # Fix DNS if needed
-            if ! nslookup github.com > /dev/null 2>&1; then
-              echo "WARNING: DNS resolution failed. Adding Google DNS..."
-              echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null || true
-              echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null || true
-            fi
-
-            # Download fresh code
+            # Download fresh code (with retry)
             echo "[1/6] Downloading fresh code..."
             mkdir -p "$NEW_DIR"
             cd "$NEW_DIR"
-            curl -fsSL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
+            for i in 1 2 3; do
+              curl -fsSL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz && break
+              echo "Download attempt $i failed, retrying in 5s..."
+              sleep 5
+            done
+            if [ ! -f main.tar.gz ]; then
+              echo "ERROR: Failed to download tarball after 3 attempts"
+              exit 1
+            fi
             tar -xzf main.tar.gz --strip-components=1
             rm -f main.tar.gz
 
@@ -100,23 +101,6 @@ jobs:
             docker ps -q --filter 'publish=80' | xargs -r docker stop 2>/dev/null || true
             docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
             docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
-            echo "[3/6] Stopping current containers..."
-            OLD_COMPOSE=""
-            if [ -L "$APP_DIR" ]; then
-              OLD_TARGET=$(readlink -f "$APP_DIR" 2>/dev/null || readlink "$APP_DIR" 2>/dev/null || echo "")
-              if [ -n "$OLD_TARGET" ] && [ -f "$OLD_TARGET/docker-compose.yml" ]; then
-                OLD_COMPOSE="$OLD_TARGET/docker-compose.yml"
-              fi
-            elif [ -f "$APP_DIR/docker-compose.yml" ]; then
-              OLD_COMPOSE="$APP_DIR/docker-compose.yml"
-            fi
-
-            if [ -n "$OLD_COMPOSE" ]; then
-              echo "Stopping containers from: $OLD_COMPOSE"
-              $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
-            else
-              echo "No existing deployment found"
-            fi
 
             # Swap to new code
             echo "[4/6] Swapping to new code..."
