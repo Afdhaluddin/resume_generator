@@ -89,6 +89,31 @@ jobs:
             if [ -n "$OLD_COMPOSE" ]; then
               echo "Stopping containers from: $OLD_COMPOSE"
               $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
+            fi
+
+            # Also stop by project name in case old containers still running
+            $COMPOSE_CMD -p resume-generator down 2>/dev/null || true
+            
+            # Force remove any containers using our ports
+            echo "Checking for port conflicts..."
+            docker ps -q --filter 'publish=8080' | xargs -r docker stop 2>/dev/null || true
+            docker ps -q --filter 'publish=80' | xargs -r docker stop 2>/dev/null || true
+            docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
+            docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
+            echo "[3/6] Stopping current containers..."
+            OLD_COMPOSE=""
+            if [ -L "$APP_DIR" ]; then
+              OLD_TARGET=$(readlink -f "$APP_DIR" 2>/dev/null || readlink "$APP_DIR" 2>/dev/null || echo "")
+              if [ -n "$OLD_TARGET" ] && [ -f "$OLD_TARGET/docker-compose.yml" ]; then
+                OLD_COMPOSE="$OLD_TARGET/docker-compose.yml"
+              fi
+            elif [ -f "$APP_DIR/docker-compose.yml" ]; then
+              OLD_COMPOSE="$APP_DIR/docker-compose.yml"
+            fi
+
+            if [ -n "$OLD_COMPOSE" ]; then
+              echo "Stopping containers from: $OLD_COMPOSE"
+              $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
             else
               echo "No existing deployment found"
             fi
