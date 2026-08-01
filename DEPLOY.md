@@ -1,62 +1,86 @@
-# ResumeForge - Deployment Guide
+# ResumeForge Deployment Guide
 
-## Quick Deploy (GitHub Actions)
+## Quick Start
 
-### 1. Add Repository Secrets
+### 1. VPS Setup (run once as root)
 
-Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+SSH into your VPS as root and run:
 
-Add these secrets:
-
-| Secret Name | Description | Example |
-|------------|-------------|---------|
-| `VPS_HOST` | Your VPS IP address or domain | `192.168.1.100` or `resumeforge.app` |
-| `VPS_USER` | SSH username for your VPS | `root` or `ubuntu` |
-| `VPS_SSH_KEY` | Private SSH key (pem format) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-
-**How to get the SSH key:**
 ```bash
-# On your local machine (the one that can SSH into your VPS)
-cat ~/.ssh/id_rsa
-# Copy the entire output including BEGIN/END lines
+# Download and run the setup script
+curl -fsSL https://raw.githubusercontent.com/Afdhaluddin/resume_generator/main/scripts/setup-vps.sh | bash
 ```
 
-### 2. Push to main branch
+Or manually:
 
-Every push to `main` will:
-1. Run CI (build + test)
-2. Build Docker images
-3. Deploy to your VPS automatically
+```bash
+# Fix DNS
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.4.4" >> /etc/resolv.conf
 
-Or trigger manually: GitHub repo → Actions → Deploy to VPS → Run workflow
+# Create CI user
+useradd -m -s /bin/bash github-ci
+usermod -aG docker github-ci
+
+# Generate SSH key for GitHub Actions
+su - github-ci -c "ssh-keygen -t ed25519 -C github-actions -f ~/.ssh/id_ed25519 -N ''"
+cat /home/github-ci/.ssh/id_ed25519.pub >> /home/github-ci/.ssh/authorized_keys
+
+# Show private key (copy to GitHub Secrets)
+cat /home/github-ci/.ssh/id_ed25519
+```
+
+### 2. GitHub Secrets
+
+Go to **GitHub Repo** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+| Secret Name | Value |
+|-------------|-------|
+| `VPS_HOST` | Your VPS IP (e.g., `169.58.31.55`) |
+| `VPS_USER` | `github-ci` |
+| `VPS_SSH_KEY` | Paste the private key from step 1 |
+
+### 3. Deploy
+
+Push to `main` branch or manually trigger from **GitHub Actions** → **Deploy to VPS** → **Run workflow**
 
 ---
 
-## Manual Deploy (On Your VPS)
+## Troubleshooting
 
-### Prerequisites
-- Docker & Docker Compose installed
-- Git installed
+### DNS Resolution Failed
 
-### Steps
+If you see `Could not resolve host: github.com`:
 
 ```bash
-# 1. Clone the repository
-ssh user@your-vps-ip
-git clone https://github.com/Afdhaluddin/resume_generator.git /opt/resume-generator
-cd /opt/resume-generator
+# As root on VPS
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.4.4" >> /etc/resolv.conf
 
-# 2. Configure environment
-cp .env.example .env
-nano .env
-# Fill in your Stripe and SMTP credentials
+# Make persistent (Ubuntu/Debian)
+apt update && apt install -y resolvconf
+systemctl enable resolvconf
+```
 
-# 3. Deploy
-docker compose up --build -d
+### Docker Permission Denied
 
-# 4. Verify
-docker compose ps
-curl http://localhost:8080/api/resume/check-limit
+If the deploy fails with docker permission errors:
+
+```bash
+# As root on VPS
+usermod -aG docker github-ci
+# Then log out and back in as github-ci, or run:
+newgrp docker
+```
+
+### Port Already in Use
+
+If port 8080 or 80 is already allocated:
+
+```bash
+# As CI user on VPS
+docker ps -q --filter "name=resumegen" | xargs -r docker stop
+docker ps -aq --filter "name=resumegen" | xargs -r docker rm
 ```
 
 ---
@@ -64,160 +88,31 @@ curl http://localhost:8080/api/resume/check-limit
 ## Architecture
 
 ```
-User Browser
-     |
-     | HTTP port 80 (or 8081)
-     v
-+-------------+       +------------------+
-|   Nginx     |------>|  Spring Boot     |
-|  (Frontend) | /api  |    Backend       |
-|   :80       |------>|    :8080         |
-+-------------+       +------------------+
+GitHub Push
+    ↓
+GitHub Actions (deploy.yml)
+    ↓
+SSH into VPS as github-ci
+    ↓
+Download tarball → Extract → Symlink swap
+    ↓
+Docker Compose build + up
+    ↓
+Health check
 ```
 
-- **Frontend (nginx)**: Serves the Vue.js SPA and proxies `/api/*` to the backend
-- **Backend (Spring Boot)**: Handles PDF generation, payments, email, admin API
-- **No database needed**: IP limits, resume cache, and payment records are stored in-memory
+### Directory Layout on VPS
 
----
-
-## Environment Variables
-
-### Required
-| Variable | Description |
-|----------|-------------|
-| `STRIPE_SECRET_KEY` | Stripe secret key (test or live) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `STRIPE_PRICE_ID` | Stripe price ID for unlimited plan |
-| `APP_FRONTEND_URL` | Your domain (e.g., `https://resumeforge.app`) |
-
-### Optional (for email receipts)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SMTP_HOST` | — | SMTP server host |
-| `SMTP_PORT` | 587 | SMTP server port |
-| `SMTP_USER` | — | SMTP username |
-| `SMTP_PASS` | — | SMTP password |
-| `SMTP_AUTH` | true | Enable SMTP auth |
-| `SMTP_TLS` | true | Enable TLS |
-
----
-
-## Docker Commands
-
-```bash
-# View logs
-docker compose logs -f
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Stop all services
-docker compose down
-
-# Restart
-docker compose restart
-
-# Rebuild after code changes
-docker compose build --no-cache
-docker compose up -d
-
-# Check running containers
-docker compose ps
-
-# Shell into containers
-docker exec -it resumegen-backend sh
-docker exec -it resumegen-frontend sh
+```
+/home/github-ci/
+├── resume-generator -> resume-generator-1234567890  (symlink to active)
+├── resume-generator-1234567890                       (current deploy)
+├── resume-generator-1234567880                       (previous deploy)
+└── resume-generator.backup-1234567870                (old real dir backup)
 ```
 
----
+### Why Symlink Swap?
 
-## Updating After Code Changes
-
-### With GitHub Actions (Recommended)
-Just push to `main`:
-```bash
-git add .
-git commit -m "feat: your change"
-git push origin main
-```
-
-### Manual update on VPS
-```bash
-cd /opt/resume-generator
-git pull origin main
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-```
-
----
-
-## Custom Domain / HTTPS
-
-### Using Cloudflare (Recommended)
-1. Point your domain to your VPS IP
-2. Enable Cloudflare proxy (orange cloud)
-3. SSL/TLS → Full (strict)
-
-### Using Let's Encrypt with Certbot
-```bash
-# Install certbot
-docker run -it --rm \
-  -v /etc/letsencrypt:/etc/letsencrypt \
-  -v /var/lib/letsencrypt:/var/lib/letsencrypt \
-  certbot/certbot certonly --standalone -d yourdomain.com
-
-# Update frontend/nginx.conf to use SSL certificates
-```
-
-### Using Nginx Proxy Manager
-Deploy alongside the app:
-```yaml
-# Add to docker-compose.yml
-  nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:latest
-    ports:
-      - "80:80"
-      - "443:443"
-      - "81:81"
-    volumes:
-      - npm-data:/data
-      - npm-letsencrypt:/etc/letsencrypt
-```
-
----
-
-## Troubleshooting
-
-### Port 80 already in use
-```bash
-sudo lsof -i :80
-# Change frontend port in docker-compose.yml:
-# ports:
-#   - "8081:80"
-```
-
-### Backend won't start
-```bash
-docker compose logs backend
-# Common issues: Stripe keys missing, port conflict
-```
-
-### CORS errors
-- Nginx proxies API requests, so CORS should not be needed in production
-- If accessing backend directly, update `CORS_ALLOWED_ORIGINS`
-
-### Emails not sending
-- Check SMTP credentials in `.env`
-- If SMTP not configured, receipts are logged to console only
-- Check backend logs: `docker compose logs backend | grep -i email`
-
----
-
-## GitHub Actions Workflows
-
-| Workflow | File | Trigger | Purpose |
-|----------|------|---------|---------|
-| CI | `.github/workflows/ci.yml` | Push to main/develop, PRs | Build & test |
-| Docker Publish | `.github/workflows/docker-publish.yml` | Push to main, tags | Build & push images to GHCR |
-| Deploy to VPS | `.github/workflows/deploy-vps.yml` | Push to main, manual | SSH deploy to VPS |
+- Avoids permission issues when replacing root-owned files from Docker containers
+- Allows atomic deployment (instant switch)
+- Keeps old versions as rollback backups

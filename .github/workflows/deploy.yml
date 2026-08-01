@@ -67,7 +67,15 @@ jobs:
               cp "$APP_DIR/.env" "$NEW_DIR/.env"
             fi
 
-            # Docker compose command
+            # Docker compose command (user must be in docker group)
+            COMPOSE_CMD="docker compose"
+
+            # Verify docker is accessible
+            if ! docker ps > /dev/null 2>&1; then
+              echo "ERROR: Cannot run docker. Make sure the user is in the 'docker' group."
+              echo "Run as root: usermod -aG docker $(whoami)"
+              exit 1
+            fi
             if docker ps > /dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
             else
@@ -152,6 +160,9 @@ jobs:
             $COMPOSE_CMD up -d
 
             # Cleanup
+            docker image prune -f
+            ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
+            ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
             docker image prune -f 2>/dev/null || sudo docker image prune -f 2>/dev/null || true
             ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
             ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
