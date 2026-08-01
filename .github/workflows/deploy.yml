@@ -3,7 +3,6 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
-
   workflow_dispatch:
     inputs:
       environment:
@@ -29,7 +28,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-
             APP_DIR=~/resume-generator
             TIMESTAMP=$(date +%s)
             NEW_DIR=~/resume-generator-$TIMESTAMP
@@ -46,7 +44,7 @@ jobs:
               echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null || true
             fi
 
-            # --- Download fresh code ---
+            # Download fresh code
             echo "[1/6] Downloading fresh code..."
             mkdir -p "$NEW_DIR"
             cd "$NEW_DIR"
@@ -57,27 +55,26 @@ jobs:
             echo "Extracted files:"
             ls -la "$NEW_DIR" | head -20
 
-            # Verify extraction
             if [ ! -f "$NEW_DIR/docker-compose.yml" ]; then
-              echo "ERROR: tarball extraction failed - docker-compose.yml not found"
+              echo "ERROR: tarball extraction failed"
               exit 1
             fi
 
-            # Preserve .env from current live directory
+            # Preserve .env
             if [ -f "$APP_DIR/.env" ]; then
               echo "[2/6] Preserving existing .env..."
               cp "$APP_DIR/.env" "$NEW_DIR/.env"
             fi
 
-            # Determine docker compose command
+            # Docker compose command
             if docker ps > /dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
             else
-              echo "WARNING: docker requires sudo. Using sudo..."
+              echo "WARNING: docker requires sudo"
               COMPOSE_CMD="sudo docker compose"
             fi
 
-            # Stop running containers from old location
+            # Stop old containers
             echo "[3/6] Stopping current containers..."
             OLD_COMPOSE=""
             if [ -L "$APP_DIR" ]; then
@@ -93,7 +90,7 @@ jobs:
               echo "Stopping containers from: $OLD_COMPOSE"
               $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
             else
-              echo "No existing deployment found, skipping stop..."
+              echo "No existing deployment found"
             fi
 
             # Swap to new code
@@ -116,29 +113,26 @@ jobs:
                 echo "Creating .env from .env.example"
                 cp .env.example .env || true
               fi
-              # If still no .env, create minimal one
               if [ ! -f .env ]; then
                 echo "Creating minimal .env"
-                cat > .env << 'ENVEOF'
-# Stripe
-STRIPE_SECRET_KEY=sk_test_your_key_here
-STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
-STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
-STRIPE_PRICE_ID=price_your_price_here
-
-# Email (SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-EMAIL_FROM=noreply@resumeforge.app
-
-# Admin
-ADMIN_API_KEY=change-me-admin-key
-
-# App
-FREE_RESUME_LIMIT=2
-ENVEOF
+                echo '# Stripe' > .env
+                echo 'STRIPE_SECRET_KEY=sk_test_your_key_here' >> .env
+                echo 'STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here' >> .env
+                echo 'STRIPE_WEBHOOK_SECRET=whsec_your_secret_here' >> .env
+                echo 'STRIPE_PRICE_ID=price_your_price_here' >> .env
+                echo '' >> .env
+                echo '# Email (SMTP)' >> .env
+                echo 'SMTP_HOST=smtp.gmail.com' >> .env
+                echo 'SMTP_PORT=587' >> .env
+                echo 'SMTP_USERNAME=your-email@gmail.com' >> .env
+                echo 'SMTP_PASSWORD=your-app-password' >> .env
+                echo 'EMAIL_FROM=noreply@resumeforge.app' >> .env
+                echo '' >> .env
+                echo '# Admin' >> .env
+                echo 'ADMIN_API_KEY=change-me-admin-key' >> .env
+                echo '' >> .env
+                echo '# App' >> .env
+                echo 'FREE_RESUME_LIMIT=2' >> .env
               fi
               echo "WARNING: Please edit .env with your actual credentials!"
             fi
