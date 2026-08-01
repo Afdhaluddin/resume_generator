@@ -35,6 +35,10 @@ jobs:
             NEW_DIR=~/resume-generator-$TIMESTAMP
             GITHUB_REPO="Afdhaluddin/resume_generator"
 
+            echo "=== ResumeForge Deploy ==="
+            echo "Timestamp: $TIMESTAMP"
+            echo "New dir: $NEW_DIR"
+
             # Fix DNS if needed
             if ! nslookup github.com > /dev/null 2>&1; then
               echo "WARNING: DNS resolution failed. Adding Google DNS..."
@@ -42,73 +46,79 @@ jobs:
               echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null || true
             fi
 
-            # --- Strategy: Versioned directory + symlink swap ---
-            echo "Downloading fresh code to $NEW_DIR..."
-            mkdir -p $NEW_DIR
-            cd $NEW_DIR
+            # --- Download fresh code ---
+            echo "[1/6] Downloading fresh code..."
+            mkdir -p "$NEW_DIR"
+            cd "$NEW_DIR"
             curl -fsSL "https://github.com/$GITHUB_REPO/archive/refs/heads/main.tar.gz" -o main.tar.gz
             tar -xzf main.tar.gz --strip-components=1
             rm -f main.tar.gz
 
-            # Verify extraction worked
-            if [ ! -f docker-compose.yml ]; then
+            echo "Extracted files:"
+            ls -la "$NEW_DIR" | head -20
+
+            # Verify extraction
+            if [ ! -f "$NEW_DIR/docker-compose.yml" ]; then
               echo "ERROR: tarball extraction failed - docker-compose.yml not found"
               exit 1
             fi
 
             # Preserve .env from current live directory
-            if [ -f $APP_DIR/.env ]; then
-              echo "Preserving existing .env..."
-              cp $APP_DIR/.env $NEW_DIR/.env
+            if [ -f "$APP_DIR/.env" ]; then
+              echo "[2/6] Preserving existing .env..."
+              cp "$APP_DIR/.env" "$NEW_DIR/.env"
             fi
 
             # Determine docker compose command
             if docker ps > /dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
             else
-              echo "WARNING: docker requires sudo. Trying sudo..."
+              echo "WARNING: docker requires sudo. Using sudo..."
               COMPOSE_CMD="sudo docker compose"
             fi
 
             # Stop running containers from old location
-            echo "Stopping current containers..."
-            if [ -L $APP_DIR ]; then
-              # APP_DIR is a symlink - use the target
-              OLD_TARGET=$(readlink -f $APP_DIR)
-              $COMPOSE_CMD -f $OLD_TARGET/docker-compose.yml down || true
-            elif [ -d $APP_DIR ] && [ -f $APP_DIR/docker-compose.yml ]; then
-              # APP_DIR is a real directory with docker-compose
-              $COMPOSE_CMD -f $APP_DIR/docker-compose.yml down || true
+            echo "[3/6] Stopping current containers..."
+            OLD_COMPOSE=""
+            if [ -L "$APP_DIR" ]; then
+              OLD_TARGET=$(readlink -f "$APP_DIR" 2>/dev/null || readlink "$APP_DIR" 2>/dev/null || echo "")
+              if [ -n "$OLD_TARGET" ] && [ -f "$OLD_TARGET/docker-compose.yml" ]; then
+                OLD_COMPOSE="$OLD_TARGET/docker-compose.yml"
+              fi
+            elif [ -f "$APP_DIR/docker-compose.yml" ]; then
+              OLD_COMPOSE="$APP_DIR/docker-compose.yml"
+            fi
+
+            if [ -n "$OLD_COMPOSE" ]; then
+              echo "Stopping containers from: $OLD_COMPOSE"
+              $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
             else
               echo "No existing deployment found, skipping stop..."
             fi
 
-            # Handle APP_DIR: if it's a real directory, move it aside
-            # If it's a symlink, remove it
-            echo "Setting up app directory..."
-            if [ -d $APP_DIR ] && [ ! -L $APP_DIR ]; then
-              # Real directory - move aside
-              mv $APP_DIR $APP_DIR.backup-$TIMESTAMP
-              echo "Moved old directory to $APP_DIR.backup-$TIMESTAMP"
-            elif [ -L $APP_DIR ]; then
-              # Symlink - remove it
-              rm -f $APP_DIR
+            # Swap to new code
+            echo "[4/6] Swapping to new code..."
+            if [ -d "$APP_DIR" ] && [ ! -L "$APP_DIR" ]; then
+              mv "$APP_DIR" "$APP_DIR.backup-$TIMESTAMP"
+              echo "Moved old directory to backup"
+            elif [ -L "$APP_DIR" ]; then
+              rm -f "$APP_DIR"
             fi
+            ln -s "$NEW_DIR" "$APP_DIR"
+            echo "Symlink created: $APP_DIR -> $NEW_DIR"
 
-            # Create symlink to new code
-            ln -s $NEW_DIR $APP_DIR
-            echo "Symlinked $APP_DIR -> $NEW_DIR"
-
-            cd $APP_DIR
+            cd "$APP_DIR"
 
             # Ensure .env exists
+            echo "[5/6] Setting up .env..."
             if [ ! -f .env ]; then
               if [ -f .env.example ]; then
-                echo "WARNING: .env not found. Creating from .env.example"
-                cp .env.example .env
-                echo "Please edit .env with your Stripe and SMTP credentials!"
-              else
-                echo "WARNING: No .env or .env.example found. Creating minimal .env"
+                echo "Creating .env from .env.example"
+                cp .env.example .env || true
+              fi
+              # If still no .env, create minimal one
+              if [ ! -f .env ]; then
+                echo "Creating minimal .env"
                 cat > .env << 'ENVEOF'
 # Stripe
 STRIPE_SECRET_KEY=sk_test_your_key_here
@@ -129,38 +139,32 @@ ADMIN_API_KEY=change-me-admin-key
 # App
 FREE_RESUME_LIMIT=2
 ENVEOF
-                echo "Please edit .env with your actual credentials!"
               fi
+              echo "WARNING: Please edit .env with your actual credentials!"
             fi
 
-            # Rebuild and restart
+            # Build and start
+            echo "[6/6] Building and starting containers..."
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
 
-            # Cleanup old images
+            # Cleanup
             docker image prune -f 2>/dev/null || sudo docker image prune -f 2>/dev/null || true
-
-            # Cleanup old deploy directories (keep last 2)
-            echo "Cleaning up old deployments..."
             ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
-            # Also clean up old backups
             ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
 
             # Health check
-            echo "Waiting for services to start..."
+            echo "Waiting for services..."
             sleep 20
+            BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
+            FRONTEND=$(curl -sf http://localhost:80/ > /dev/null && echo "OK" || echo "FAIL")
 
-            BACKEND_HEALTH=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
-            FRONTEND_HEALTH=$(curl -sf http://localhost:80/ > /dev/null && echo "OK" || echo "FAIL")
-
-            if [ "$BACKEND_HEALTH" = "OK" ] && [ "$FRONTEND_HEALTH" = "OK" ]; then
+            if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
               echo "========================================"
               echo " Deployment successful!"
               echo "========================================"
               echo "Frontend: http://${{ secrets.VPS_HOST }}"
               echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
-              echo "Admin:    http://${{ secrets.VPS_HOST }}/#admin"
-              $COMPOSE_CMD ps
             else
               echo "ERROR: Health check failed!"
               $COMPOSE_CMD logs --tail 50
