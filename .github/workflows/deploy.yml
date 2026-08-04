@@ -102,6 +102,11 @@ jobs:
             # Force remove any containers using our ports
             echo "Checking for port conflicts..."
             docker ps -q --filter 'publish=8080' | xargs -r docker stop 2>/dev/null || true
+            docker ps -q --filter 'publish=8081' | xargs -r docker stop 2>/dev/null || true
+            docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
+            docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
+            echo "Checking for port conflicts..."
+            docker ps -q --filter 'publish=8080' | xargs -r docker stop 2>/dev/null || true
             docker ps -q --filter 'publish=80' | xargs -r docker stop 2>/dev/null || true
             docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
             docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
@@ -162,6 +167,17 @@ jobs:
             ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
 
             # Health check
+            echo "Waiting for services..."
+            sleep 20
+            BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
+            FRONTEND=$(curl -sf http://localhost:8081/ > /dev/null && echo "OK" || echo "FAIL")
+
+            if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
+              echo "========================================"
+              echo " Deployment successful!"
+              echo "========================================"
+              echo "Frontend: http://${{ secrets.VPS_HOST }}:8081"
+              echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
             echo "Waiting for services..."
             sleep 20
             BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
