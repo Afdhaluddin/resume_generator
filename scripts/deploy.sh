@@ -154,12 +154,6 @@ else
 fi
 
 if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
-echo "Waiting for services..."
-sleep 20
-BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
-FRONTEND=$(curl -sf http://localhost:8081/ > /dev/null && echo "OK" || echo "FAIL")
-
-if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
   echo "========================================"
   echo " Deployment successful!"
   echo "========================================"
