@@ -128,6 +128,34 @@ ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2
 # Health check
 echo "Waiting for services..."
 sleep 20
+
+# Debug: check what's listening
+echo "Checking open ports..."
+netstat -tlnp 2>/dev/null || ss -tlnp 2>/dev/null || echo "Cannot check ports"
+
+# Debug backend health check
+BACKEND_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/resume/check-limit 2>&1)
+echo "Backend HTTP status: $BACKEND_CODE"
+if [ "$BACKEND_CODE" = "200" ]; then
+  BACKEND="OK"
+else
+  BACKEND="FAIL"
+  echo "Backend response body:"
+  curl -s http://localhost:8080/api/resume/check-limit 2>&1 || true
+fi
+
+# Debug frontend health check  
+FRONTEND_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/ 2>&1)
+echo "Frontend HTTP status: $FRONTEND_CODE"
+if [ "$FRONTEND_CODE" = "200" ]; then
+  FRONTEND="OK"
+else
+  FRONTEND="FAIL"
+fi
+
+if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
+echo "Waiting for services..."
+sleep 20
 BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
 FRONTEND=$(curl -sf http://localhost:8081/ > /dev/null && echo "OK" || echo "FAIL")
 
