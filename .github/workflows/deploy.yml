@@ -35,7 +35,6 @@ jobs:
 
             echo "=== ResumeForge Deploy ==="
             echo "Timestamp: $TIMESTAMP"
-            echo "New dir: $NEW_DIR"
 
             # Download fresh code (with retry)
             echo "[1/6] Downloading fresh code..."
@@ -48,15 +47,11 @@ jobs:
             done
             if [ ! -f main.tar.gz ]; then
               echo "ERROR: Failed to download tarball after 3 attempts"
-              echo "Cleaning up failed download directory..."
               rm -rf "$NEW_DIR"
               exit 1
             fi
             tar -xzf main.tar.gz --strip-components=1
             rm -f main.tar.gz
-
-            echo "Extracted files:"
-            ls -la "$NEW_DIR" | head -20
 
             if [ ! -f "$NEW_DIR/docker-compose.yml" ]; then
               echo "ERROR: tarball extraction failed"
@@ -70,14 +65,13 @@ jobs:
               cp "$APP_DIR/.env" "$NEW_DIR/.env"
             fi
 
-            # Docker compose command
-            COMPOSE_CMD="docker compose"
+            # Verify docker access
             if ! docker ps > /dev/null 2>&1; then
               echo "ERROR: Cannot run docker. Make sure the user is in the 'docker' group."
-              echo "Run as root: usermod -aG docker $(whoami)"
               rm -rf "$NEW_DIR"
               exit 1
             fi
+            COMPOSE_CMD="docker compose"
 
             # Stop old containers
             echo "[3/6] Stopping current containers..."
@@ -96,18 +90,12 @@ jobs:
               $COMPOSE_CMD -f "$OLD_COMPOSE" down || true
             fi
 
-            # Also stop by project name in case old containers still running
             $COMPOSE_CMD -p resume-generator down 2>/dev/null || true
             
-            # Force remove any containers using our ports
+            # Force remove any containers using our ports or names
             echo "Checking for port conflicts..."
             docker ps -q --filter 'publish=8080' | xargs -r docker stop 2>/dev/null || true
             docker ps -q --filter 'publish=8081' | xargs -r docker stop 2>/dev/null || true
-            docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
-            docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
-            echo "Checking for port conflicts..."
-            docker ps -q --filter 'publish=8080' | xargs -r docker stop 2>/dev/null || true
-            docker ps -q --filter 'publish=80' | xargs -r docker stop 2>/dev/null || true
             docker ps -q --filter 'name=resumegen' | xargs -r docker stop 2>/dev/null || true
             docker ps -aq --filter 'name=resumegen' | xargs -r docker rm 2>/dev/null || true
 
@@ -115,7 +103,6 @@ jobs:
             echo "[4/6] Swapping to new code..."
             if [ -d "$APP_DIR" ] && [ ! -L "$APP_DIR" ]; then
               mv "$APP_DIR" "$APP_DIR.backup-$TIMESTAMP"
-              echo "Moved old directory to backup"
             elif [ -L "$APP_DIR" ]; then
               rm -f "$APP_DIR"
             fi
@@ -128,7 +115,6 @@ jobs:
             echo "[5/6] Setting up .env..."
             if [ ! -f .env ]; then
               if [ -f .env.example ]; then
-                echo "Creating .env from .env.example"
                 cp .env.example .env || true
               fi
               if [ ! -f .env ]; then
@@ -151,6 +137,28 @@ jobs:
                 echo '' >> .env
                 echo '# App' >> .env
                 echo 'FREE_RESUME_LIMIT=2' >> .env
+              fi
+                echo "Creating minimal .env"
+                cat > .env << 'EOF'
+            # Stripe
+            STRIPE_SECRET_KEY=sk_test_your_key_here
+            STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
+            STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
+            STRIPE_PRICE_ID=price_your_price_here
+
+            # Email (SMTP)
+            SMTP_HOST=smtp.gmail.com
+            SMTP_PORT=587
+            SMTP_USERNAME=your-email@gmail.com
+            SMTP_PASSWORD=your-app-password
+            EMAIL_FROM=noreply@resumeforge.app
+
+            # Admin
+            ADMIN_API_KEY=change-me-admin-key
+
+            # App
+            FREE_RESUME_LIMIT=2
+            EOF
               fi
               echo "WARNING: Please edit .env with your actual credentials!"
             fi
@@ -177,17 +185,6 @@ jobs:
               echo " Deployment successful!"
               echo "========================================"
               echo "Frontend: http://${{ secrets.VPS_HOST }}:8081"
-              echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
-            echo "Waiting for services..."
-            sleep 20
-            BACKEND=$(curl -sf http://localhost:8080/api/resume/check-limit && echo "OK" || echo "FAIL")
-            FRONTEND=$(curl -sf http://localhost:80/ > /dev/null && echo "OK" || echo "FAIL")
-
-            if [ "$BACKEND" = "OK" ] && [ "$FRONTEND" = "OK" ]; then
-              echo "========================================"
-              echo " Deployment successful!"
-              echo "========================================"
-              echo "Frontend: http://${{ secrets.VPS_HOST }}"
               echo "Backend:  http://${{ secrets.VPS_HOST }}:8080"
             else
               echo "ERROR: Health check failed!"
