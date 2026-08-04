@@ -48,6 +48,8 @@ jobs:
             done
             if [ ! -f main.tar.gz ]; then
               echo "ERROR: Failed to download tarball after 3 attempts"
+              echo "Cleaning up failed download directory..."
+              rm -rf "$NEW_DIR"
               exit 1
             fi
             tar -xzf main.tar.gz --strip-components=1
@@ -58,6 +60,7 @@ jobs:
 
             if [ ! -f "$NEW_DIR/docker-compose.yml" ]; then
               echo "ERROR: tarball extraction failed"
+              rm -rf "$NEW_DIR"
               exit 1
             fi
 
@@ -67,20 +70,13 @@ jobs:
               cp "$APP_DIR/.env" "$NEW_DIR/.env"
             fi
 
-            # Docker compose command (user must be in docker group)
+            # Docker compose command
             COMPOSE_CMD="docker compose"
-
-            # Verify docker is accessible
             if ! docker ps > /dev/null 2>&1; then
               echo "ERROR: Cannot run docker. Make sure the user is in the 'docker' group."
               echo "Run as root: usermod -aG docker $(whoami)"
+              rm -rf "$NEW_DIR"
               exit 1
-            fi
-            if docker ps > /dev/null 2>&1; then
-              COMPOSE_CMD="docker compose"
-            else
-              echo "WARNING: docker requires sudo"
-              COMPOSE_CMD="sudo docker compose"
             fi
 
             # Stop old containers
@@ -159,11 +155,9 @@ jobs:
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
 
-            # Cleanup
+            # Cleanup old deployments (keep last 2)
+            echo "Cleaning up old deployments..."
             docker image prune -f
-            ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
-            ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
-            docker image prune -f 2>/dev/null || sudo docker image prune -f 2>/dev/null || true
             ls -td ~/resume-generator-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
             ls -td ~/resume-generator.backup-*/ 2>/dev/null | tail -n +3 | xargs -r rm -rf 2>/dev/null || true
 
