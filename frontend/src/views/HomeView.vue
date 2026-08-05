@@ -7,7 +7,7 @@
           Build Your Professional Resume Online — Free
         </h1>
         <p class="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-          Create stunning, ATS-friendly resumes in minutes. Choose from professionally designed templates tailored for students, doctors, lawyers, programmers, and business professionals.
+          Create stunning, ATS-friendly resumes in minutes. Choose from 6 professionally designed templates tailored for students, doctors, lawyers, programmers, and business professionals.
         </p>
         <div class="flex justify-center gap-4 flex-wrap">
           <button 
@@ -49,8 +49,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <h2 class="text-lg font-semibold text-slate-900 mb-2">Professional Resume Templates</h2>
-            <p class="text-slate-600">ATS-friendly designs crafted for different industries and career stages.</p>
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">6 Professional Templates</h2>
+            <p class="text-slate-600">Modern, Classic, Professional, Minimal, Executive, and Creative designs.</p>
           </article>
           <article class="text-center p-6">
             <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4" aria-hidden="true">
@@ -70,33 +70,33 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header class="text-center mb-12">
           <h2 class="text-3xl font-bold text-slate-900 mb-4">Choose Your Resume Template</h2>
-          <p class="text-slate-600 max-w-xl mx-auto">Select a design that matches your industry and personal style. All templates are fully customizable.</p>
+          <p class="text-slate-600 max-w-xl mx-auto">6 professionally designed templates for every industry. All ATS-friendly and fully customizable.</p>
         </header>
 
-        <div class="grid md:grid-cols-3 gap-8" role="list">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" role="list">
           <!-- Modern Template -->
           <article 
             class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-xl border-2 border-transparent hover:border-primary-500"
             @click="$emit('select-template', 'modern')"
             role="listitem"
           >
-            <figure class="h-64 bg-gradient-to-br from-blue-500 to-indigo-600 p-6 flex flex-col justify-center items-center text-white">
+            <figure class="h-56 bg-gradient-to-br from-blue-500 to-indigo-600 p-6 flex flex-col justify-center items-center text-white">
               <figcaption class="text-center">
                 <h3 class="text-2xl font-bold mb-1">John Doe</h3>
                 <p class="text-blue-100 text-sm">Software Engineer</p>
                 <div class="mt-4 w-full h-px bg-blue-300"></div>
                 <div class="mt-2 text-xs text-blue-100 space-y-1">
-                  <p>john@email.com | (555) 123-4567</p>
+                  <p>john@email.com · (555) 123-4567</p>
                   <p>San Francisco, CA</p>
                 </div>
               </figcaption>
             </figure>
             <div class="p-6">
-              <h3 class="text-lg font-bold text-slate-900">Modern Resume Template</h3>
-              <p class="text-slate-600 text-sm mt-1">Clean, bold header with vibrant colors. Perfect for tech professionals and creatives.</p>
-              <div class="mt-4 flex gap-2">
+              <h3 class="text-lg font-bold text-slate-900">Modern</h3>
+              <p class="text-slate-600 text-sm mt-1">Bold blue header. Perfect for tech, startups, and creatives.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
                 <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">Tech</span>
-                <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">Creative</span>
+                <span class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">Startups</span>
               </div>
             </div>
           </article>
@@ -107,21 +107,21 @@
             @click="$emit('select-template', 'classic')"
             role="listitem"
           >
-            <figure class="h-64 bg-white p-6 flex flex-col justify-center items-center text-slate-800 border border-slate-200">
+            <figure class="h-56 bg-white p-6 flex flex-col justify-center items-center text-slate-800 border border-slate-200">
               <figcaption class="text-center">
                 <h3 class="text-2xl font-bold mb-1 font-serif">Jane Smith</h3>
                 <p class="text-amber-700 text-sm italic font-serif">Attorney at Law</p>
                 <div class="mt-4 w-full h-px bg-amber-700"></div>
                 <div class="mt-2 text-xs text-slate-600 space-y-1 font-serif">
-                  <p>jane@lawfirm.com | (555) 987-6543</p>
+                  <p>jane@lawfirm.com · (555) 987-6543</p>
                   <p>New York, NY</p>
                 </div>
               </figcaption>
             </figure>
             <div class="p-6">
-              <h3 class="text-lg font-bold text-slate-900">Classic Resume Template</h3>
-              <p class="text-slate-600 text-sm mt-1">Traditional serif typography with elegant layout. Ideal for law, medicine, and academia.</p>
-              <div class="mt-4 flex gap-2">
+              <h3 class="text-lg font-bold text-slate-900">Classic</h3>
+              <p class="text-slate-600 text-sm mt-1">Elegant serif typography. Ideal for law, medicine, and academia.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
                 <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">Law</span>
                 <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Medicine</span>
               </div>
@@ -134,7 +134,7 @@
             @click="$emit('select-template', 'professional')"
             role="listitem"
           >
-            <figure class="h-64 bg-slate-50 p-0 flex">
+            <figure class="h-56 bg-slate-50 p-0 flex">
               <div class="w-1/3 bg-teal-700 p-4 flex flex-col justify-center text-white">
                 <h3 class="text-sm font-bold">A. Johnson</h3>
                 <p class="text-teal-200 text-xs">Business Analyst</p>
@@ -147,11 +147,92 @@
               </div>
             </figure>
             <div class="p-6">
-              <h3 class="text-lg font-bold text-slate-900">Professional Resume Template</h3>
-              <p class="text-slate-600 text-sm mt-1">Two-column layout with sidebar. Great for business, management, and consulting roles.</p>
-              <div class="mt-4 flex gap-2">
+              <h3 class="text-lg font-bold text-slate-900">Professional</h3>
+              <p class="text-slate-600 text-sm mt-1">Two-column with sidebar. Great for business and management.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
                 <span class="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full font-medium">Business</span>
                 <span class="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">Management</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Minimal Template -->
+          <article 
+            class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-xl border-2 border-transparent hover:border-primary-500"
+            @click="$emit('select-template', 'minimal')"
+            role="listitem"
+          >
+            <figure class="h-56 bg-white p-8 flex flex-col justify-center text-slate-800 border border-slate-100">
+              <figcaption>
+                <h3 class="text-3xl font-light mb-1 tracking-tight">Sarah Chen</h3>
+                <p class="text-gray-400 text-sm font-light">UX Designer</p>
+                <div class="mt-6 w-12 h-px bg-gray-200"></div>
+                <div class="mt-3 text-xs text-gray-400 space-y-1">
+                  <p>sarah@design.co · Portland, OR</p>
+                </div>
+              </figcaption>
+            </figure>
+            <div class="p-6">
+              <h3 class="text-lg font-bold text-slate-900">Minimal</h3>
+              <p class="text-slate-600 text-sm mt-1">Ultra-clean with whitespace. For designers and marketers.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
+                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium">Design</span>
+                <span class="px-2 py-1 bg-rose-100 text-rose-700 text-xs rounded-full font-medium">Marketing</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Executive Template -->
+          <article 
+            class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-xl border-2 border-transparent hover:border-primary-500"
+            @click="$emit('select-template', 'executive')"
+            role="listitem"
+          >
+            <figure class="h-56 bg-slate-900 p-6 flex flex-col justify-center text-white">
+              <figcaption>
+                <h3 class="text-xl font-bold mb-1">Robert Williams</h3>
+                <p class="text-amber-400 text-xs tracking-widest uppercase">Chief Executive Officer</p>
+                <div class="mt-4 w-16 h-px bg-amber-400"></div>
+                <div class="mt-3 text-xs text-slate-400 space-y-1">
+                  <p>robert@corp.com · New York, NY</p>
+                </div>
+              </figcaption>
+            </figure>
+            <div class="p-6">
+              <h3 class="text-lg font-bold text-slate-900">Executive</h3>
+              <p class="text-slate-600 text-sm mt-1">Bold dark header with gold accents. For C-suite and leaders.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
+                <span class="px-2 py-1 bg-slate-800 text-slate-200 text-xs rounded-full font-medium">C-Suite</span>
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">Leadership</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Creative Template -->
+          <article 
+            class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-xl border-2 border-transparent hover:border-primary-500"
+            @click="$emit('select-template', 'creative')"
+            role="listitem"
+          >
+            <figure class="h-56 bg-white p-0 flex">
+              <div class="w-2 bg-pink-600"></div>
+              <div class="flex-1 p-6 flex flex-col justify-center">
+                <figcaption>
+                  <h3 class="text-2xl font-bold text-slate-800 mb-1">Mia Torres</h3>
+                  <p class="text-pink-600 text-sm font-semibold">Art Director</p>
+                  <div class="mt-4 w-full h-px bg-pink-100"></div>
+                  <div class="mt-2 text-xs text-slate-500 space-y-1">
+                    <p>mia@studio.com · Los Angeles, CA</p>
+                  </div>
+                </figcaption>
+              </div>
+            </figure>
+            <div class="p-6">
+              <h3 class="text-lg font-bold text-slate-900">Creative</h3>
+              <p class="text-slate-600 text-sm mt-1">Vibrant accent bar with modern layout. For artists and creators.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
+                <span class="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full font-medium">Artists</span>
+                <span class="px-2 py-1 bg-fuchsia-100 text-fuchsia-700 text-xs rounded-full font-medium">Content</span>
               </div>
             </div>
           </article>
@@ -240,7 +321,7 @@
           "name": "What resume templates are available?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "We offer three professional templates: Modern (for tech & creatives), Classic (for law & medicine), and Professional (for business & management)."
+            "text": "We offer 6 professional templates: Modern, Classic, Professional, Minimal, Executive, and Creative. Each is designed for different industries and career stages."
           }
         },
         {
@@ -277,8 +358,8 @@ defineEmits(['select-template', 'go-pricing'])
 
 onMounted(() => {
   useSeo({
-    title: 'Free Resume Builder',
-    description: 'Build professional, ATS-friendly resumes in minutes with ResumeForge. Free for first 2 resumes. Modern, Classic & Professional templates.',
+    title: 'Free Resume Builder — 6 Professional Templates',
+    description: 'Build professional, ATS-friendly resumes in minutes with ResumeForge. 6 templates: Modern, Classic, Professional, Minimal, Executive, Creative. Free for first 2 resumes.',
     url: 'https://resumeforge.app/'
   })
 })
