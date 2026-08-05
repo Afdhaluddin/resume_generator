@@ -517,6 +517,7 @@ const generatePayload = () => {
 
 const previewPdf = async () => {
   isGenerating.value = true
+  pdfUrl.value = null
   try {
     const res = await apiPreviewResume(generatePayload())
     
@@ -525,6 +526,13 @@ const previewPdf = async () => {
       pdfUrl.value = URL.createObjectURL(blob)
       const newId = res.headers.get('X-Resume-Id')
       if (newId) resumeId.value = newId
+    } else if (res.status === 429) {
+      const data = await res.json().catch(() => ({}))
+      canGenerate.value = false
+      showPaymentModal.value = true
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.message || `Preview failed: ${res.status} ${res.statusText}`)
     }
   } catch (e) {
     console.error('Preview failed', e)
@@ -540,7 +548,7 @@ const generatePdf = async () => {
     const res = await apiGenerateResume(generatePayload())
     
     if (res.status === 429) {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       canGenerate.value = false
       showPaymentModal.value = true
       return
@@ -551,8 +559,10 @@ const generatePdf = async () => {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'resume.pdf'
+      a.download = `${form.personalInfo.fullName || 'resume'}.pdf`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
       const newId = res.headers.get('X-Resume-Id')
@@ -565,7 +575,7 @@ const generatePdf = async () => {
       emit('update-usage')
       alert('Resume downloaded successfully!')
     } else {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (data.message && data.message.includes('upgrade')) {
         canGenerate.value = false
         showPaymentModal.value = true

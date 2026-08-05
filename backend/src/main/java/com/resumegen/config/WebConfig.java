@@ -31,7 +31,8 @@ public class WebConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins(origins)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*");
+                        .allowedHeaders("*")
+                        .exposedHeaders("X-Resume-Id", "X-Remaining", "Content-Disposition");
             }
         };
     }
