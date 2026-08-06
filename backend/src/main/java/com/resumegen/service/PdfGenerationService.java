@@ -26,45 +26,37 @@ public class PdfGenerationService {
     }
 
     // ============ MODERN TEMPLATE ============
-    // Clean, bold header with blue accent. Perfect for tech, startups, creatives.
     private byte[] generateModernTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
         PdfWriter writer = PdfWriter.getInstance(document, baos);
         document.open();
 
-        Color primaryColor = new Color(37, 99, 235);   // bright blue
-        Color darkGray = new Color(31, 41, 55);        // slate-800
-        Color midGray = new Color(75, 85, 99);         // slate-600
-        Color lightGray = new Color(156, 163, 175);    // slate-400
+        Color primaryColor = new Color(37, 99, 235);
+        Color darkGray = new Color(31, 41, 55);
+        Color midGray = new Color(75, 85, 99);
+        Color lightGray = new Color(156, 163, 175);
 
-        // Full-width colored header bar
         PdfContentByte canvas = writer.getDirectContent();
         Rectangle headerRect = new Rectangle(0, PageSize.A4.getHeight() - 90, PageSize.A4.getWidth(), PageSize.A4.getHeight());
         headerRect.setBackgroundColor(primaryColor);
         canvas.rectangle(headerRect);
 
-        // Name in header
         Font nameFont = new Font(Font.HELVETICA, 28, Font.BOLD, Color.WHITE);
         Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
         name.setAlignment(Element.ALIGN_CENTER);
         name.setSpacingBefore(25);
         document.add(name);
 
-        // Job title in header
         Font titleFont = new Font(Font.HELVETICA, 13, Font.NORMAL, new Color(191, 219, 254));
         Paragraph jobTitle = new Paragraph(request.getPersonalInfo().getJobTitle(), titleFont);
         jobTitle.setAlignment(Element.ALIGN_CENTER);
         jobTitle.setSpacingAfter(35);
         document.add(jobTitle);
 
-        // Contact row
         addContactRow(document, request, midGray, "  |  ");
-
-        // Summary
         addSection(document, "PROFESSIONAL SUMMARY", primaryColor, darkGray, request.getSummary());
 
-        // Experience
         if (hasItems(request.getExperience())) {
             addSectionHeader(document, "WORK EXPERIENCE", primaryColor);
             for (ExperienceRequest exp : request.getExperience()) {
@@ -72,7 +64,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Education
         if (hasItems(request.getEducation())) {
             addSectionHeader(document, "EDUCATION", primaryColor);
             for (EducationRequest edu : request.getEducation()) {
@@ -80,10 +71,7 @@ public class PdfGenerationService {
             }
         }
 
-        // Skills
         addSkillTags(document, "SKILLS", primaryColor, request.getSkills());
-
-        // Languages
         addSkillTags(document, "LANGUAGES", primaryColor, request.getLanguages());
 
         document.close();
@@ -91,7 +79,6 @@ public class PdfGenerationService {
     }
 
     // ============ CLASSIC TEMPLATE ============
-    // Traditional serif typography. Ideal for law, medicine, academia.
     private byte[] generateClassicTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 60, 60, 60, 60);
@@ -99,27 +86,23 @@ public class PdfGenerationService {
         document.open();
 
         Color darkColor = new Color(30, 30, 30);
-        Color accentColor = new Color(120, 53, 15);     // deep brown
+        Color accentColor = new Color(120, 53, 15);
         Color midColor = new Color(80, 80, 80);
 
-        // Name - large, centered, serif
         Font nameFont = new Font(Font.TIMES_ROMAN, 30, Font.BOLD, darkColor);
         Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
         name.setAlignment(Element.ALIGN_CENTER);
         name.setSpacingAfter(4);
         document.add(name);
 
-        // Job title
         Font titleFont = new Font(Font.TIMES_ROMAN, 12, Font.ITALIC, accentColor);
         Paragraph jobTitle = new Paragraph(request.getPersonalInfo().getJobTitle(), titleFont);
         jobTitle.setAlignment(Element.ALIGN_CENTER);
         jobTitle.setSpacingAfter(8);
         document.add(jobTitle);
 
-        // Divider
         addDivider(document, accentColor, 100);
 
-        // Contact info centered
         Font contactFont = new Font(Font.TIMES_ROMAN, 9, Font.NORMAL, midColor);
         String contact = buildContact(request, "  |  ");
         if (!contact.isEmpty()) {
@@ -129,7 +112,6 @@ public class PdfGenerationService {
             document.add(contacts);
         }
 
-        // Summary
         addClassicSection(document, "SUMMARY", accentColor);
         if (request.getSummary() != null && !request.getSummary().isEmpty()) {
             Font bodyFont = new Font(Font.TIMES_ROMAN, 10, Font.NORMAL, darkColor);
@@ -137,7 +119,6 @@ public class PdfGenerationService {
             document.add(Chunk.NEWLINE);
         }
 
-        // Experience
         if (hasItems(request.getExperience())) {
             addClassicSection(document, "EXPERIENCE", accentColor);
             for (ExperienceRequest exp : request.getExperience()) {
@@ -145,7 +126,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Education
         if (hasItems(request.getEducation())) {
             addClassicSection(document, "EDUCATION", accentColor);
             for (EducationRequest edu : request.getEducation()) {
@@ -153,14 +133,12 @@ public class PdfGenerationService {
             }
         }
 
-        // Skills
         if (hasItems(request.getSkills())) {
             addClassicSection(document, "SKILLS", accentColor);
             Font skillFont = new Font(Font.TIMES_ROMAN, 10, Font.NORMAL, darkColor);
             document.add(new Paragraph(String.join(", ", request.getSkills()), skillFont));
         }
 
-        // Languages
         if (hasItems(request.getLanguages())) {
             addClassicSection(document, "LANGUAGES", accentColor);
             Font langFont = new Font(Font.TIMES_ROMAN, 10, Font.NORMAL, darkColor);
@@ -172,38 +150,33 @@ public class PdfGenerationService {
     }
 
     // ============ PROFESSIONAL TEMPLATE ============
-    // Two-column with sidebar. Great for business, management, consulting.
     private byte[] generateProfessionalTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 40, 40, 40, 40);
         PdfWriter.getInstance(document, baos);
         document.open();
 
-        Color primaryColor = new Color(13, 148, 136);    // teal-600
-        Color darkColor = new Color(30, 41, 59);         // slate-800
-        Color sidebarBg = new Color(240, 253, 250);      // teal-50
+        Color primaryColor = new Color(13, 148, 136);
+        Color darkColor = new Color(30, 41, 59);
+        Color sidebarBg = new Color(240, 253, 250);
 
         PdfPTable mainTable = new PdfPTable(2);
         mainTable.setWidthPercentage(100);
         mainTable.setWidths(new float[]{32, 68});
 
-        // LEFT COLUMN (sidebar)
         PdfPCell leftCell = new PdfPCell();
         leftCell.setBackgroundColor(sidebarBg);
         leftCell.setPadding(18);
         leftCell.setBorder(Rectangle.NO_BORDER);
 
-        // Name in sidebar
         Font nameFont = new Font(Font.HELVETICA, 15, Font.BOLD, primaryColor);
-        Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
-        leftCell.addElement(name);
+        leftCell.addElement(new Paragraph(request.getPersonalInfo().getFullName(), nameFont));
 
         Font titleFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
         Paragraph title = new Paragraph(request.getPersonalInfo().getJobTitle(), titleFont);
         title.setSpacingAfter(18);
         leftCell.addElement(title);
 
-        // Contact section
         addSidebarSection(leftCell, "CONTACT", primaryColor);
         Font smallFont = new Font(Font.HELVETICA, 8, Font.NORMAL, darkColor);
         addIfPresent(leftCell, request.getPersonalInfo().getEmail(), smallFont);
@@ -212,7 +185,6 @@ public class PdfGenerationService {
         addIfPresent(leftCell, request.getPersonalInfo().getLinkedIn(), smallFont);
         addIfPresent(leftCell, request.getPersonalInfo().getWebsite(), smallFont);
 
-        // Skills
         if (hasItems(request.getSkills())) {
             addSidebarSection(leftCell, "SKILLS", primaryColor);
             for (String skill : request.getSkills()) {
@@ -220,7 +192,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Languages
         if (hasItems(request.getLanguages())) {
             addSidebarSection(leftCell, "LANGUAGES", primaryColor);
             for (String lang : request.getLanguages()) {
@@ -231,7 +202,6 @@ public class PdfGenerationService {
         leftCell.setVerticalAlignment(Element.ALIGN_TOP);
         mainTable.addCell(leftCell);
 
-        // RIGHT COLUMN
         PdfPCell rightCell = new PdfPCell();
         rightCell.setPadding(18);
         rightCell.setBorder(Rectangle.NO_BORDER);
@@ -267,33 +237,28 @@ public class PdfGenerationService {
     }
 
     // ============ MINIMAL TEMPLATE ============
-    // Ultra-clean, whitespace-heavy, thin elegant lines. For designers, marketers.
     private byte[] generateMinimalTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 65, 65, 65, 65);
         PdfWriter.getInstance(document, baos);
         document.open();
 
-        Color darkColor = new Color(17, 24, 39);         // gray-900
-        Color midColor = new Color(107, 114, 128);       // gray-500
-        Color lightColor = new Color(209, 213, 219);     // gray-300
+        Color darkColor = new Color(17, 24, 39);
+        Color midColor = new Color(107, 114, 128);
+        Color lightColor = new Color(209, 213, 219);
 
-        // Name - very large, light weight
         Font nameFont = new Font(Font.HELVETICA, 32, Font.NORMAL, darkColor);
         Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
         name.setSpacingAfter(2);
         document.add(name);
 
-        // Job title - subtle
         Font titleFont = new Font(Font.HELVETICA, 11, Font.NORMAL, midColor);
         Paragraph jobTitle = new Paragraph(request.getPersonalInfo().getJobTitle(), titleFont);
         jobTitle.setSpacingAfter(12);
         document.add(jobTitle);
 
-        // Thin divider
         addThinDivider(document, lightColor);
 
-        // Contact - minimal
         Font contactFont = new Font(Font.HELVETICA, 8, Font.NORMAL, midColor);
         String contact = buildContact(request, "  ·  ");
         if (!contact.isEmpty()) {
@@ -302,7 +267,6 @@ public class PdfGenerationService {
             document.add(contacts);
         }
 
-        // Summary
         if (request.getSummary() != null && !request.getSummary().isEmpty()) {
             addMinimalSection(document, "About", darkColor);
             Font bodyFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
@@ -311,7 +275,6 @@ public class PdfGenerationService {
             document.add(summary);
         }
 
-        // Experience
         if (hasItems(request.getExperience())) {
             addMinimalSection(document, "Experience", darkColor);
             for (ExperienceRequest exp : request.getExperience()) {
@@ -319,7 +282,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Education
         if (hasItems(request.getEducation())) {
             addMinimalSection(document, "Education", darkColor);
             for (EducationRequest edu : request.getEducation()) {
@@ -327,20 +289,16 @@ public class PdfGenerationService {
             }
         }
 
-        // Skills
         if (hasItems(request.getSkills())) {
             addMinimalSection(document, "Skills", darkColor);
             Font skillFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
-            Paragraph skills = new Paragraph(String.join("  ·  ", request.getSkills()), skillFont);
-            document.add(skills);
+            document.add(new Paragraph(String.join("  ·  ", request.getSkills()), skillFont));
         }
 
-        // Languages
         if (hasItems(request.getLanguages())) {
             addMinimalSection(document, "Languages", darkColor);
             Font langFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
-            Paragraph langs = new Paragraph(String.join("  ·  ", request.getLanguages()), langFont);
-            document.add(langs);
+            document.add(new Paragraph(String.join("  ·  ", request.getLanguages()), langFont));
         }
 
         document.close();
@@ -348,37 +306,32 @@ public class PdfGenerationService {
     }
 
     // ============ EXECUTIVE TEMPLATE ============
-    // Bold, leadership-focused, dark navy header with gold accents. For C-suite, senior management.
     private byte[] generateExecutiveTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
         PdfWriter writer = PdfWriter.getInstance(document, baos);
         document.open();
 
-        Color navy = new Color(15, 23, 42);              // slate-900
-        Color gold = new Color(180, 140, 60);            // muted gold
+        Color navy = new Color(15, 23, 42);
+        Color gold = new Color(180, 140, 60);
         Color darkText = new Color(30, 30, 30);
         Color midText = new Color(100, 100, 100);
 
-        // Dark header block
         PdfContentByte canvas = writer.getDirectContent();
         Rectangle headerRect = new Rectangle(0, PageSize.A4.getHeight() - 100, PageSize.A4.getWidth(), PageSize.A4.getHeight());
         headerRect.setBackgroundColor(navy);
         canvas.rectangle(headerRect);
 
-        // Name
         Font nameFont = new Font(Font.HELVETICA, 26, Font.BOLD, Color.WHITE);
         Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
         name.setSpacingBefore(30);
         document.add(name);
 
-        // Title with gold accent
         Font titleFont = new Font(Font.HELVETICA, 13, Font.NORMAL, gold);
         Paragraph jobTitle = new Paragraph(request.getPersonalInfo().getJobTitle().toUpperCase(), titleFont);
         jobTitle.setSpacingAfter(40);
         document.add(jobTitle);
 
-        // Gold accent line
         LineSeparator goldLine = new LineSeparator();
         goldLine.setLineColor(gold);
         goldLine.setPercentage(25);
@@ -386,7 +339,6 @@ public class PdfGenerationService {
         document.add(new Chunk(goldLine));
         document.add(Chunk.NEWLINE);
 
-        // Contact
         Font contactFont = new Font(Font.HELVETICA, 9, Font.NORMAL, midText);
         String contact = buildContact(request, "  |  ");
         if (!contact.isEmpty()) {
@@ -395,7 +347,6 @@ public class PdfGenerationService {
             document.add(contacts);
         }
 
-        // Summary - "Executive Profile"
         if (request.getSummary() != null && !request.getSummary().isEmpty()) {
             addExecSection(document, "EXECUTIVE PROFILE", gold, navy);
             Font bodyFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkText);
@@ -404,7 +355,6 @@ public class PdfGenerationService {
             document.add(summary);
         }
 
-        // Experience - "Leadership Experience"
         if (hasItems(request.getExperience())) {
             addExecSection(document, "LEADERSHIP EXPERIENCE", gold, navy);
             for (ExperienceRequest exp : request.getExperience()) {
@@ -412,7 +362,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Education
         if (hasItems(request.getEducation())) {
             addExecSection(document, "EDUCATION", gold, navy);
             for (EducationRequest edu : request.getEducation()) {
@@ -420,14 +369,12 @@ public class PdfGenerationService {
             }
         }
 
-        // Skills
         if (hasItems(request.getSkills())) {
             addExecSection(document, "CORE COMPETENCIES", gold, navy);
             Font skillFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkText);
             document.add(new Paragraph(String.join("  ·  ", request.getSkills()), skillFont));
         }
 
-        // Languages
         if (hasItems(request.getLanguages())) {
             addExecSection(document, "LANGUAGES", gold, navy);
             Font langFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkText);
@@ -439,36 +386,31 @@ public class PdfGenerationService {
     }
 
     // ============ CREATIVE TEMPLATE ============
-    // Left accent bar, vibrant color, modern layout. For designers, artists, marketers.
     private byte[] generateCreativeTemplate(ResumeRequest request) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
         PdfWriter writer = PdfWriter.getInstance(document, baos);
         document.open();
 
-        Color accent = new Color(219, 39, 119);          // pink-600
+        Color accent = new Color(219, 39, 119);
         Color darkColor = new Color(31, 41, 55);
         Color midColor = new Color(107, 114, 128);
 
-        // Left accent bar (full height)
         PdfContentByte canvas = writer.getDirectContent();
         Rectangle accentBar = new Rectangle(0, 0, 8, PageSize.A4.getHeight());
         accentBar.setBackgroundColor(accent);
         canvas.rectangle(accentBar);
 
-        // Name - large, bold
         Font nameFont = new Font(Font.HELVETICA, 30, Font.BOLD, darkColor);
         Paragraph name = new Paragraph(request.getPersonalInfo().getFullName(), nameFont);
         name.setSpacingAfter(4);
         document.add(name);
 
-        // Job title with accent color
         Font titleFont = new Font(Font.HELVETICA, 12, Font.BOLD, accent);
         Paragraph jobTitle = new Paragraph(request.getPersonalInfo().getJobTitle(), titleFont);
         jobTitle.setSpacingAfter(10);
         document.add(jobTitle);
 
-        // Contact
         Font contactFont = new Font(Font.HELVETICA, 9, Font.NORMAL, midColor);
         String contact = buildContact(request, "  ·  ");
         if (!contact.isEmpty()) {
@@ -477,7 +419,6 @@ public class PdfGenerationService {
             document.add(contacts);
         }
 
-        // Summary
         if (request.getSummary() != null && !request.getSummary().isEmpty()) {
             addCreativeSection(document, "ABOUT ME", accent);
             Font bodyFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
@@ -486,7 +427,6 @@ public class PdfGenerationService {
             document.add(summary);
         }
 
-        // Experience
         if (hasItems(request.getExperience())) {
             addCreativeSection(document, "EXPERIENCE", accent);
             for (ExperienceRequest exp : request.getExperience()) {
@@ -494,7 +434,6 @@ public class PdfGenerationService {
             }
         }
 
-        // Education
         if (hasItems(request.getEducation())) {
             addCreativeSection(document, "EDUCATION", accent);
             for (EducationRequest edu : request.getEducation()) {
@@ -502,14 +441,12 @@ public class PdfGenerationService {
             }
         }
 
-        // Skills
         if (hasItems(request.getSkills())) {
             addCreativeSection(document, "SKILLS", accent);
             Font skillFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
             document.add(new Paragraph(String.join("  ·  ", request.getSkills()), skillFont));
         }
 
-        // Languages
         if (hasItems(request.getLanguages())) {
             addCreativeSection(document, "LANGUAGES", accent);
             Font langFont = new Font(Font.HELVETICA, 10, Font.NORMAL, darkColor);
@@ -561,7 +498,6 @@ public class PdfGenerationService {
         }
     }
 
-    // Modern template helpers
     private void addContactRow(Document document, ResumeRequest request, Color color, String sep) throws DocumentException {
         String contact = buildContact(request, sep);
         if (!contact.isEmpty()) {
@@ -668,7 +604,6 @@ public class PdfGenerationService {
         document.add(new Paragraph(String.join("  •  ", items), font));
     }
 
-    // Classic template helpers
     private void addDivider(Document document, Color color, float percentage) throws DocumentException {
         LineSeparator line = new LineSeparator();
         line.setLineColor(color);
@@ -694,11 +629,8 @@ public class PdfGenerationService {
         Font posFont = new Font(Font.TIMES_ROMAN, 10, Font.ITALIC, accent);
         Font bodyFont = new Font(Font.TIMES_ROMAN, 10, Font.NORMAL, dark);
 
-        Paragraph company = new Paragraph(exp.getCompany(), companyFont);
-        document.add(company);
-
-        String posLine = exp.getPosition() + "  |  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present");
-        document.add(new Paragraph(posLine, posFont));
+        document.add(new Paragraph(exp.getCompany(), companyFont));
+        document.add(new Paragraph(exp.getPosition() + "  |  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present"), posFont));
 
         if (exp.getDescription() != null && !exp.getDescription().isEmpty()) {
             document.add(new Paragraph(exp.getDescription(), bodyFont));
@@ -724,16 +656,38 @@ public class PdfGenerationService {
         document.add(Chunk.NEWLINE);
     }
 
-    // Professional template helpers
+    private void addSidebarSection(PdfPCell cell, String title, Color color) {
+        Font font = new Font(Font.HELVETICA, 9, Font.BOLD, color);
+        Paragraph p = new Paragraph(title, font);
+        p.setSpacingBefore(15);
+        p.setSpacingAfter(5);
+        cell.addElement(p);
+
+        LineSeparator line = new LineSeparator();
+        line.setLineColor(color);
+        cell.addElement(new Chunk(line));
+    }
+
+    private void addMainSection(PdfPCell cell, String title, Color color) {
+        Font font = new Font(Font.HELVETICA, 11, Font.BOLD, color);
+        Paragraph p = new Paragraph(title, font);
+        p.setSpacingBefore(10);
+        p.setSpacingAfter(8);
+        cell.addElement(p);
+
+        LineSeparator line = new LineSeparator();
+        line.setLineColor(color);
+        cell.addElement(new Chunk(line));
+        cell.addElement(Chunk.NEWLINE);
+    }
+
     private void addProExperience(PdfPCell cell, ExperienceRequest exp, Color dark) {
         Font companyFont = new Font(Font.HELVETICA, 10, Font.BOLD, dark);
         Font posFont = new Font(Font.HELVETICA, 9, Font.NORMAL, new Color(100, 100, 100));
         Font bodyFont = new Font(Font.HELVETICA, 9, Font.NORMAL, dark);
 
         cell.addElement(new Paragraph(exp.getCompany(), companyFont));
-
-        String posLine = exp.getPosition() + "  |  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present");
-        cell.addElement(new Paragraph(posLine, posFont));
+        cell.addElement(new Paragraph(exp.getPosition() + "  |  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present"), posFont));
 
         if (exp.getDescription() != null && !exp.getDescription().isEmpty()) {
             Paragraph desc = new Paragraph(exp.getDescription(), bodyFont);
@@ -761,7 +715,6 @@ public class PdfGenerationService {
         cell.addElement(Chunk.NEWLINE);
     }
 
-    // Minimal template helpers
     private void addThinDivider(Document document, Color color) throws DocumentException {
         LineSeparator line = new LineSeparator();
         line.setLineColor(color);
@@ -785,11 +738,8 @@ public class PdfGenerationService {
         Font dateFont = new Font(Font.HELVETICA, 9, Font.NORMAL, mid);
         Font bodyFont = new Font(Font.HELVETICA, 10, Font.NORMAL, dark);
 
-        Paragraph company = new Paragraph(exp.getCompany(), companyFont);
-        document.add(company);
-
-        String posLine = exp.getPosition() + " · " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present");
-        Paragraph pos = new Paragraph(posLine, dateFont);
+        document.add(new Paragraph(exp.getCompany(), companyFont));
+        Paragraph pos = new Paragraph(exp.getPosition() + " · " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present"), dateFont);
         pos.setSpacingAfter(4);
         document.add(pos);
 
@@ -817,7 +767,6 @@ public class PdfGenerationService {
         document.add(Chunk.NEWLINE);
     }
 
-    // Executive template helpers
     private void addExecSection(Document document, String title, Color gold, Color navy) throws DocumentException {
         Font font = new Font(Font.HELVETICA, 11, Font.BOLD, navy);
         Paragraph p = new Paragraph(title, font);
@@ -877,7 +826,6 @@ public class PdfGenerationService {
         document.add(Chunk.NEWLINE);
     }
 
-    // Creative template helpers
     private void addCreativeSection(Document document, String title, Color accent) throws DocumentException {
         Font font = new Font(Font.HELVETICA, 11, Font.BOLD, accent);
         Paragraph p = new Paragraph(title, font);
@@ -897,11 +845,8 @@ public class PdfGenerationService {
         Font posFont = new Font(Font.HELVETICA, 10, Font.BOLD, accent);
         Font bodyFont = new Font(Font.HELVETICA, 10, Font.NORMAL, dark);
 
-        Paragraph company = new Paragraph(exp.getCompany(), companyFont);
-        document.add(company);
-
-        String posLine = exp.getPosition() + "  ·  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present");
-        document.add(new Paragraph(posLine, posFont));
+        document.add(new Paragraph(exp.getCompany(), companyFont));
+        document.add(new Paragraph(exp.getPosition() + "  ·  " + exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present"), posFont));
 
         if (exp.getDescription() != null && !exp.getDescription().isEmpty()) {
             document.add(new Paragraph(exp.getDescription(), bodyFont));
