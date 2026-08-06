@@ -40,6 +40,13 @@ export const TEMPLATES = [
     description: 'Vibrant pink accent bar with modern layout. For designers, artists, content creators, and marketers.',
     tags: ['Artists', 'Content', 'Innovation'],
     tagColors: ['bg-pink-100 text-pink-700', 'bg-fuchsia-100 text-fuchsia-700', 'bg-violet-100 text-violet-700']
+  },
+  {
+    id: 'academic',
+    name: 'Academic',
+    description: 'Two-column research CV with publications, projects, and referees. Perfect for researchers, PhDs, and academics.',
+    tags: ['Research', 'PhD', 'Academia'],
+    tagColors: ['bg-red-100 text-red-800', 'bg-amber-100 text-amber-800', 'bg-stone-100 text-stone-700']
   }
 ]
 

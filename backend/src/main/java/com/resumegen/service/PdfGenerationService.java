@@ -21,6 +21,7 @@ public class PdfGenerationService {
             case "minimal" -> generateMinimalTemplate(request);
             case "executive" -> generateExecutiveTemplate(request);
             case "creative" -> generateCreativeTemplate(request);
+            case "academic" -> generateAcademicTemplate(request);
             default -> generateModernTemplate(request);
         };
     }
@@ -870,5 +871,327 @@ public class PdfGenerationService {
         }
         document.add(new Paragraph(degree + "  ·  " + edu.getStartDate() + " - " + edu.getEndDate(), detailFont));
         document.add(Chunk.NEWLINE);
+    }
+
+    // ============ ACADEMIC TEMPLATE ============
+    private byte[] generateAcademicTemplate(ResumeRequest request) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4, 40, 40, 40, 40);
+        PdfWriter writer = PdfWriter.getInstance(document, baos);
+        document.open();
+
+        Color maroon = new Color(123, 31, 31);
+        Color gold = new Color(194, 165, 100);
+        Color darkText = new Color(40, 40, 40);
+        Color midText = new Color(100, 100, 100);
+        Color lightText = new Color(150, 150, 150);
+
+        // ====== PAGE 1: Two-column layout ======
+        PdfPTable page1Table = new PdfPTable(2);
+        page1Table.setWidthPercentage(100);
+        page1Table.setWidths(new float[]{58, 42});
+
+        // ---- LEFT COLUMN ----
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        leftCell.setPaddingRight(12);
+
+        // Header: Name + Tagline + Contact
+        Font nameFont = new Font(Font.HELVETICA, 22, Font.BOLD, darkText);
+        Paragraph name = new Paragraph(request.getPersonalInfo().getFullName().toUpperCase(), nameFont);
+        name.setSpacingAfter(2);
+        leftCell.addElement(name);
+
+        Font tagFont = new Font(Font.HELVETICA, 11, Font.NORMAL, maroon);
+        Paragraph tagline = new Paragraph(request.getPersonalInfo().getJobTitle(), tagFont);
+        tagline.setSpacingAfter(6);
+        leftCell.addElement(tagline);
+
+        // Contact row with social links
+        Font contactFont = new Font(Font.HELVETICA, 7, Font.NORMAL, midText);
+        StringBuilder contactSb = new StringBuilder();
+        PersonalInfoRequest p = request.getPersonalInfo();
+        appendIfPresent(contactSb, p.getEmail(), "  ");
+        appendIfPresent(contactSb, p.getPhone(), "  ");
+        appendIfPresent(contactSb, formatLocation(p), "  ");
+        appendIfPresent(contactSb, p.getWebsite(), "  ");
+        appendIfPresent(contactSb, p.getTwitter(), "  ");
+        appendIfPresent(contactSb, p.getGithub(), "  ");
+        appendIfPresent(contactSb, p.getOrcid(), "  ");
+        if (contactSb.length() > 0) {
+            Paragraph contacts = new Paragraph(contactSb.toString(), contactFont);
+            contacts.setSpacingAfter(10);
+            leftCell.addElement(contacts);
+        }
+
+        addAcademicDivider(leftCell, gold);
+
+        // Experience
+        if (hasItems(request.getExperience())) {
+            addAcademicSectionHeader(leftCell, "EXPERIENCE", maroon, gold);
+            for (ExperienceRequest exp : request.getExperience()) {
+                addAcademicExperience(leftCell, exp, darkText, midText, lightText);
+            }
+        }
+
+        // Projects
+        if (hasItems(request.getProjects())) {
+            addAcademicSectionHeader(leftCell, "PROJECTS", maroon, gold);
+            for (ProjectRequest proj : request.getProjects()) {
+                addAcademicProject(leftCell, proj, darkText, midText);
+            }
+        }
+
+        leftCell.setVerticalAlignment(Element.ALIGN_TOP);
+        page1Table.addCell(leftCell);
+
+        // ---- RIGHT COLUMN ----
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        rightCell.setPaddingLeft(12);
+
+        // Life Philosophy
+        if (request.getLifePhilosophy() != null && !request.getLifePhilosophy().isEmpty()) {
+            addAcademicSectionHeader(rightCell, "MY LIFE PHILOSOPHY", maroon, gold);
+            Font philFont = new Font(Font.HELVETICA, 9, Font.ITALIC, maroon);
+            Paragraph phil = new Paragraph("\"" + request.getLifePhilosophy() + "\"", philFont);
+            phil.setSpacingAfter(12);
+            rightCell.addElement(phil);
+        }
+
+        // Most Proud Of
+        if (hasItems(request.getProudOf())) {
+            addAcademicSectionHeader(rightCell, "MOST PROUD OF", maroon, gold);
+            for (ProudOfRequest po : request.getProudOf()) {
+                addAcademicProudOf(rightCell, po, darkText, midText);
+            }
+        }
+
+        // Strengths (skills)
+        if (hasItems(request.getSkills())) {
+            addAcademicSectionHeader(rightCell, "STRENGTHS", maroon, gold);
+            Font skillFont = new Font(Font.HELVETICA, 8, Font.NORMAL, darkText);
+            for (String skill : request.getSkills()) {
+                PdfPTable pillTable = new PdfPTable(1);
+                pillTable.setWidthPercentage(100);
+                PdfPCell pillCell = new PdfPCell(new Paragraph(skill, skillFont));
+                pillCell.setBackgroundColor(new Color(245, 245, 245));
+                pillCell.setBorderColor(new Color(200, 200, 200));
+                pillCell.setPadding(3);
+                pillCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                pillTable.addCell(pillCell);
+                rightCell.addElement(pillTable);
+                rightCell.addElement(Chunk.NEWLINE);
+            }
+        }
+
+        // Languages
+        if (hasItems(request.getLanguages())) {
+            addAcademicSectionHeader(rightCell, "LANGUAGES", maroon, gold);
+            Font langFont = new Font(Font.HELVETICA, 9, Font.NORMAL, darkText);
+            for (String lang : request.getLanguages()) {
+                rightCell.addElement(new Paragraph("\u25cf " + lang, langFont));
+            }
+        }
+
+        // Education
+        if (hasItems(request.getEducation())) {
+            addAcademicSectionHeader(rightCell, "EDUCATION", maroon, gold);
+            for (EducationRequest edu : request.getEducation()) {
+                addAcademicEducation(rightCell, edu, darkText, midText);
+            }
+        }
+
+        rightCell.setVerticalAlignment(Element.ALIGN_TOP);
+        page1Table.addCell(rightCell);
+
+        document.add(page1Table);
+
+        // ====== PAGE 2: Publications & Referees ======
+        if (request.getPublications() != null || hasItems(request.getReferees())) {
+            document.newPage();
+            PdfPTable page2Table = new PdfPTable(2);
+            page2Table.setWidthPercentage(100);
+            page2Table.setWidths(new float[]{58, 42});
+
+            PdfPCell pubCell = new PdfPCell();
+            pubCell.setBorder(Rectangle.NO_BORDER);
+            pubCell.setPaddingRight(12);
+
+            if (request.getPublications() != null) {
+                addAcademicSectionHeader(pubCell, "PUBLICATIONS", maroon, gold);
+
+                PublicationRequest pub = request.getPublications();
+                if (hasItems(pub.getBooks())) {
+                    Font catFont = new Font(Font.HELVETICA, 9, Font.BOLD, maroon);
+                    pubCell.addElement(new Paragraph("Books", catFont));
+                    Font pubFont = new Font(Font.HELVETICA, 8, Font.NORMAL, darkText);
+                    for (String book : pub.getBooks()) {
+                        Paragraph bp = new Paragraph("\u2022 " + book, pubFont);
+                        bp.setSpacingAfter(3);
+                        pubCell.addElement(bp);
+                    }
+                    pubCell.addElement(Chunk.NEWLINE);
+                }
+                if (hasItems(pub.getJournalArticles())) {
+                    Font catFont = new Font(Font.HELVETICA, 9, Font.BOLD, maroon);
+                    pubCell.addElement(new Paragraph("Journal Articles", catFont));
+                    Font pubFont = new Font(Font.HELVETICA, 8, Font.NORMAL, darkText);
+                    for (String article : pub.getJournalArticles()) {
+                        Paragraph jp = new Paragraph("\u2022 " + article, pubFont);
+                        jp.setSpacingAfter(3);
+                        pubCell.addElement(jp);
+                    }
+                    pubCell.addElement(Chunk.NEWLINE);
+                }
+                if (hasItems(pub.getConferenceProceedings())) {
+                    Font catFont = new Font(Font.HELVETICA, 9, Font.BOLD, maroon);
+                    pubCell.addElement(new Paragraph("Conference Proceedings", catFont));
+                    Font pubFont = new Font(Font.HELVETICA, 8, Font.NORMAL, darkText);
+                    for (String proc : pub.getConferenceProceedings()) {
+                        Paragraph cp = new Paragraph("\u2022 " + proc, pubFont);
+                        cp.setSpacingAfter(3);
+                        pubCell.addElement(cp);
+                    }
+                }
+            }
+
+            pubCell.setVerticalAlignment(Element.ALIGN_TOP);
+            page2Table.addCell(pubCell);
+
+            PdfPCell refCell = new PdfPCell();
+            refCell.setBorder(Rectangle.NO_BORDER);
+            refCell.setPaddingLeft(12);
+
+            if (hasItems(request.getReferees())) {
+                addAcademicSectionHeader(refCell, "REFEREES", maroon, gold);
+                for (RefereeRequest ref : request.getReferees()) {
+                    addAcademicReferee(refCell, ref, darkText, midText);
+                }
+            }
+
+            refCell.setVerticalAlignment(Element.ALIGN_TOP);
+            page2Table.addCell(refCell);
+
+            document.add(page2Table);
+        }
+
+        document.close();
+        return baos.toByteArray();
+    }
+
+    private void addAcademicDivider(PdfPCell cell, Color gold) {
+        LineSeparator line = new LineSeparator();
+        line.setLineColor(gold);
+        line.setPercentage(100);
+        line.setLineWidth(1.5f);
+        cell.addElement(new Chunk(line));
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicSectionHeader(PdfPCell cell, String title, Color maroon, Color gold) {
+        Font font = new Font(Font.HELVETICA, 10, Font.BOLD, maroon);
+        Paragraph p = new Paragraph(title, font);
+        p.setSpacingBefore(12);
+        p.setSpacingAfter(4);
+        cell.addElement(p);
+
+        LineSeparator line = new LineSeparator();
+        line.setLineColor(gold);
+        line.setPercentage(100);
+        line.setLineWidth(1f);
+        cell.addElement(new Chunk(line));
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicExperience(PdfPCell cell, ExperienceRequest exp, Color dark, Color mid, Color light) {
+        Font companyFont = new Font(Font.HELVETICA, 9, Font.BOLD, dark);
+        Font posFont = new Font(Font.HELVETICA, 8, Font.NORMAL, mid);
+        Font dateFont = new Font(Font.HELVETICA, 7, Font.NORMAL, light);
+        Font bodyFont = new Font(Font.HELVETICA, 8, Font.NORMAL, dark);
+
+        cell.addElement(new Paragraph(exp.getCompany(), companyFont));
+        cell.addElement(new Paragraph(exp.getPosition(), posFont));
+
+        String dates = exp.getStartDate() + " - " + (exp.getEndDate() != null ? exp.getEndDate() : "Present");
+        cell.addElement(new Paragraph(dates, dateFont));
+
+        if (exp.getDescription() != null && !exp.getDescription().isEmpty()) {
+            cell.addElement(new Paragraph(exp.getDescription(), bodyFont));
+        }
+        if (exp.getAchievements() != null) {
+            for (String achievement : exp.getAchievements()) {
+                cell.addElement(new Paragraph("\u2022 " + achievement, bodyFont));
+            }
+        }
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicProject(PdfPCell cell, ProjectRequest proj, Color dark, Color mid) {
+        Font nameFont = new Font(Font.HELVETICA, 9, Font.BOLD, dark);
+        Font agencyFont = new Font(Font.HELVETICA, 8, Font.NORMAL, mid);
+        Font bodyFont = new Font(Font.HELVETICA, 8, Font.NORMAL, dark);
+
+        cell.addElement(new Paragraph(proj.getName(), nameFont));
+        if (proj.getFundingAgency() != null && !proj.getFundingAgency().isEmpty()) {
+            cell.addElement(new Paragraph(proj.getFundingAgency(), agencyFont));
+        }
+        if (proj.getDuration() != null && !proj.getDuration().isEmpty()) {
+            cell.addElement(new Paragraph(proj.getDuration(), agencyFont));
+        }
+        if (proj.getDescription() != null && !proj.getDescription().isEmpty()) {
+            cell.addElement(new Paragraph(proj.getDescription(), bodyFont));
+        }
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicProudOf(PdfPCell cell, ProudOfRequest po, Color dark, Color mid) {
+        Font titleFont = new Font(Font.HELVETICA, 9, Font.BOLD, dark);
+        Font detailFont = new Font(Font.HELVETICA, 8, Font.NORMAL, mid);
+
+        cell.addElement(new Paragraph("\u2605 " + po.getTitle(), titleFont));
+        if (po.getDetails() != null && !po.getDetails().isEmpty()) {
+            cell.addElement(new Paragraph(po.getDetails(), detailFont));
+        }
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicEducation(PdfPCell cell, EducationRequest edu, Color dark, Color mid) {
+        Font degreeFont = new Font(Font.HELVETICA, 9, Font.BOLD, dark);
+        Font instFont = new Font(Font.HELVETICA, 8, Font.NORMAL, new Color(123, 31, 31));
+        Font dateFont = new Font(Font.HELVETICA, 7, Font.NORMAL, mid);
+        Font bodyFont = new Font(Font.HELVETICA, 8, Font.NORMAL, dark);
+
+        String degree = edu.getDegree();
+        if (edu.getFieldOfStudy() != null && !edu.getFieldOfStudy().isEmpty()) {
+            degree += " in " + edu.getFieldOfStudy();
+        }
+        cell.addElement(new Paragraph(degree, degreeFont));
+        cell.addElement(new Paragraph(edu.getInstitution(), instFont));
+        cell.addElement(new Paragraph(edu.getStartDate() + " - " + edu.getEndDate(), dateFont));
+        if (edu.getDescription() != null && !edu.getDescription().isEmpty()) {
+            cell.addElement(new Paragraph(edu.getDescription(), bodyFont));
+        }
+        cell.addElement(Chunk.NEWLINE);
+    }
+
+    private void addAcademicReferee(PdfPCell cell, RefereeRequest ref, Color dark, Color mid) {
+        Font nameFont = new Font(Font.HELVETICA, 9, Font.BOLD, dark);
+        Font bodyFont = new Font(Font.HELVETICA, 8, Font.NORMAL, mid);
+
+        cell.addElement(new Paragraph(ref.getName(), nameFont));
+        if (ref.getInstitute() != null && !ref.getInstitute().isEmpty()) {
+            cell.addElement(new Paragraph(ref.getInstitute(), bodyFont));
+        }
+        if (ref.getEmail() != null && !ref.getEmail().isEmpty()) {
+            cell.addElement(new Paragraph(ref.getEmail(), bodyFont));
+        }
+        if (ref.getAddressLine1() != null && !ref.getAddressLine1().isEmpty()) {
+            cell.addElement(new Paragraph(ref.getAddressLine1(), bodyFont));
+        }
+        if (ref.getAddressLine2() != null && !ref.getAddressLine2().isEmpty()) {
+            cell.addElement(new Paragraph(ref.getAddressLine2(), bodyFont));
+        }
+        cell.addElement(Chunk.NEWLINE);
     }
 }

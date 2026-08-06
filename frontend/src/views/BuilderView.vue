@@ -72,6 +72,26 @@
               <label class="block text-sm font-medium text-slate-700 mb-1" for="website">Website</label>
               <input id="website" v-model="form.personalInfo.website" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="johndoe.com" />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="twitter">X/Twitter</label>
+              <input id="twitter" v-model="form.personalInfo.twitter" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="@handle" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="github">GitHub</label>
+              <input id="github" v-model="form.personalInfo.github" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="username" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="orcid">ORCID</label>
+              <input id="orcid" v-model="form.personalInfo.orcid" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="0000-0000-0000-0000" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="gitlab">GitLab</label>
+              <input id="gitlab" v-model="form.personalInfo.gitlab" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="username" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="mastodon">Mastodon</label>
+              <input id="mastodon" v-model="form.personalInfo.mastodon" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="@user@instance" />
+            </div>
           </div>
         </section>
 
@@ -263,8 +283,119 @@
           </div>
         </section>
 
-        <!-- Step 6: Preview & Download -->
-        <section v-else-if="currentStep === 5" key="preview" aria-label="Preview and Download">
+        <!-- Step 6: Additional Info (Optional) -->
+        <section v-else-if="currentStep === 5" key="additional" aria-label="Additional Information">
+          <h2 class="text-2xl font-bold text-slate-900 mb-2">Additional Information</h2>
+          <p class="text-slate-500 text-sm mb-6">Optional fields especially useful for academic and research CVs.</p>
+
+          <!-- Life Philosophy -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="lifePhilosophy">Life Philosophy / Quote</label>
+            <textarea 
+              id="lifePhilosophy"
+              v-model="form.lifePhilosophy" 
+              rows="2" 
+              class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none"
+              placeholder="Something smart or heartfelt, preferably in one sentence..."
+            ></textarea>
+          </div>
+
+          <!-- Projects -->
+          <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium text-slate-700">Projects</label>
+              <button @click="addProject" class="px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-xs font-medium">Add Project</button>
+            </div>
+            <div v-for="(proj, index) in form.projects" :key="index" class="border border-slate-200 rounded-xl p-4 mb-3 relative">
+              <button @click="removeProject(index)" class="absolute top-3 right-3 text-red-500 hover:text-red-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                  <input v-model="proj.name" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Project Name" />
+                </div>
+                <div>
+                  <input v-model="proj.fundingAgency" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Funding Agency / Institution" />
+                </div>
+                <div>
+                  <input v-model="proj.duration" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Duration (e.g. Jan 2020 - Dec 2022)" />
+                </div>
+                <div class="sm:col-span-2">
+                  <textarea v-model="proj.description" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="Project description or abstract..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Proud Of -->
+          <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium text-slate-700">Most Proud Of</label>
+              <button @click="addProudOf" class="px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-xs font-medium">Add Achievement</button>
+            </div>
+            <div v-for="(po, index) in form.proudOf" :key="index" class="border border-slate-200 rounded-xl p-4 mb-3 relative">
+              <button @click="removeProudOf(index)" class="absolute top-3 right-3 text-red-500 hover:text-red-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              <div class="grid gap-3">
+                <input v-model="po.title" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Achievement Title" />
+                <textarea v-model="po.details" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="Details about this achievement..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Publications -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Publications</label>
+            <div class="space-y-4">
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">Books (one per line)</label>
+                <textarea v-model="publicationsText.books" @input="updatePublications" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="E. Someone, A Fictional Research. Publisher, 2010."></textarea>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">Journal Articles (one per line)</label>
+                <textarea v-model="publicationsText.journalArticles" @input="updatePublications" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="L. T. Wong, A non-existant paper, Journal Name, vol. 12, 2011."></textarea>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">Conference Proceedings (one per line)</label>
+                <textarea v-model="publicationsText.conferenceProceedings" @input="updatePublications" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="E. Someone, Another paper, Proceedings of Conference, 2013."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Referees -->
+          <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium text-slate-700">Referees / References</label>
+              <button @click="addReferee" class="px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-xs font-medium">Add Referee</button>
+            </div>
+            <div v-for="(ref, index) in form.referees" :key="index" class="border border-slate-200 rounded-xl p-4 mb-3 relative">
+              <button @click="removeReferee(index)" class="absolute top-3 right-3 text-red-500 hover:text-red-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <input v-model="ref.name" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Name (e.g. Prof. John Doe)" />
+                </div>
+                <div>
+                  <input v-model="ref.institute" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Institute / Organization" />
+                </div>
+                <div class="sm:col-span-2">
+                  <input v-model="ref.email" type="email" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Email" />
+                </div>
+                <div>
+                  <input v-model="ref.addressLine1" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Address Line 1" />
+                </div>
+                <div>
+                  <input v-model="ref.addressLine2" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Address Line 2" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 7: Preview & Download -->
+        <section v-else-if="currentStep === 6" key="preview" aria-label="Preview and Download">
           <h2 class="text-2xl font-bold text-slate-900 mb-6">Preview & Download</h2>
           
           <div class="bg-slate-50 rounded-xl p-6 mb-6">
@@ -366,6 +497,7 @@ const steps = [
   { id: 'experience', label: 'Experience' },
   { id: 'education', label: 'Education' },
   { id: 'skills', label: 'Skills' },
+  { id: 'additional', label: 'Additional' },
   { id: 'preview', label: 'Preview' }
 ]
 
@@ -387,20 +519,30 @@ const form = reactive({
     country: '',
     linkedIn: '',
     website: '',
-    jobTitle: ''
+    jobTitle: '',
+    twitter: '',
+    github: '',
+    orcid: '',
+    gitlab: '',
+    mastodon: ''
   },
   education: [],
   experience: [],
   skills: [],
   languages: [],
-  summary: ''
+  summary: '',
+  lifePhilosophy: '',
+  projects: [],
+  proudOf: [],
+  publications: { books: [], journalArticles: [], conferenceProceedings: [] },
+  referees: []
 })
 
 const skillsText = ref('')
 const languagesText = ref('')
 
 const updateSeoForStep = () => {
-  const stepNames = ['Personal Information', 'Professional Summary', 'Work Experience', 'Education', 'Skills & Languages', 'Preview & Download']
+  const stepNames = ['Personal Information', 'Professional Summary', 'Work Experience', 'Education', 'Skills & Languages', 'Additional Info', 'Preview & Download']
   useSeo({
     title: `Step ${currentStep.value + 1}: ${stepNames[currentStep.value]}`,
     description: `Build your ${props.selectedTemplate} resume - ${stepNames[currentStep.value]} step.`,
@@ -475,6 +617,34 @@ const updateLanguages = () => {
     .filter(l => l)
 }
 
+const addProject = () => {
+  form.projects.push({ name: '', fundingAgency: '', duration: '', description: '' })
+}
+const removeProject = (index) => {
+  form.projects.splice(index, 1)
+}
+
+const addProudOf = () => {
+  form.proudOf.push({ title: '', details: '' })
+}
+const removeProudOf = (index) => {
+  form.proudOf.splice(index, 1)
+}
+
+const publicationsText = reactive({ books: '', journalArticles: '', conferenceProceedings: '' })
+const updatePublications = () => {
+  form.publications.books = publicationsText.books.split('\n').map(s => s.trim()).filter(s => s)
+  form.publications.journalArticles = publicationsText.journalArticles.split('\n').map(s => s.trim()).filter(s => s)
+  form.publications.conferenceProceedings = publicationsText.conferenceProceedings.split('\n').map(s => s.trim()).filter(s => s)
+}
+
+const addReferee = () => {
+  form.referees.push({ name: '', institute: '', email: '', addressLine1: '', addressLine2: '' })
+}
+const removeReferee = (index) => {
+  form.referees.splice(index, 1)
+}
+
 const goToStep = (index) => {
   if (index <= currentStep.value + 1) {
     currentStep.value = index
@@ -511,7 +681,12 @@ const generatePayload = () => {
       achievements: e.achievements
     })),
     skills: form.skills,
-    languages: form.languages
+    languages: form.languages,
+    lifePhilosophy: form.lifePhilosophy,
+    projects: form.projects.map(p => ({ ...p })),
+    proudOf: form.proudOf.map(p => ({ ...p })),
+    publications: form.publications,
+    referees: form.referees.map(r => ({ ...r }))
   }
 }
 

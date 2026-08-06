@@ -7,7 +7,7 @@
           Build Your Professional Resume Online — Free
         </h1>
         <p class="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-          Create stunning, ATS-friendly resumes in minutes. Choose from 6 professionally designed templates tailored for students, doctors, lawyers, programmers, and business professionals.
+          Create stunning, ATS-friendly resumes in minutes. Choose from 7 professionally designed templates tailored for students, doctors, lawyers, programmers, and business professionals.
         </p>
         <div class="flex justify-center gap-4 flex-wrap">
           <button 
@@ -70,7 +70,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header class="text-center mb-12">
           <h2 class="text-3xl font-bold text-slate-900 mb-4">Choose Your Resume Template</h2>
-          <p class="text-slate-600 max-w-xl mx-auto">6 professionally designed templates for every industry. All ATS-friendly and fully customizable.</p>
+          <p class="text-slate-600 max-w-xl mx-auto">7 professionally designed templates for every industry. All ATS-friendly and fully customizable.</p>
         </header>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" role="list">
@@ -233,6 +233,43 @@
               <div class="mt-4 flex gap-2 flex-wrap">
                 <span class="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full font-medium">Artists</span>
                 <span class="px-2 py-1 bg-fuchsia-100 text-fuchsia-700 text-xs rounded-full font-medium">Content</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Academic Template -->
+          <article 
+            class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-xl border-2 border-transparent hover:border-primary-500"
+            @click="$emit('select-template', 'academic')"
+            role="listitem"
+          >
+            <figure class="h-56 bg-white p-0 flex">
+              <div class="w-1/2 p-4 flex flex-col justify-center border-r border-slate-100">
+                <figcaption>
+                  <h3 class="text-lg font-bold text-slate-800 mb-1">Dr. A. Smith</h3>
+                  <p class="text-red-800 text-xs font-semibold">Research Scientist</p>
+                  <div class="mt-3 w-full h-px bg-amber-200"></div>
+                  <div class="mt-2 text-xs text-slate-500 space-y-1">
+                    <p>alex@university.edu</p>
+                  </div>
+                </figcaption>
+              </div>
+              <div class="w-1/2 p-4 flex flex-col justify-center">
+                <div class="text-xs text-slate-600 space-y-1">
+                  <p class="font-semibold text-red-800">PUBLICATIONS</p>
+                  <p>3 Journal Articles</p>
+                  <p>2 Books</p>
+                  <p class="font-semibold text-red-800 mt-2">REFEREES</p>
+                  <p>Prof. J. Doe</p>
+                </div>
+              </div>
+            </figure>
+            <div class="p-6">
+              <h3 class="text-lg font-bold text-slate-900">Academic</h3>
+              <p class="text-slate-600 text-sm mt-1">Research CV with publications, projects, and referees. For PhDs and researchers.</p>
+              <div class="mt-4 flex gap-2 flex-wrap">
+                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">Research</span>
+                <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">PhD</span>
               </div>
             </div>
           </article>

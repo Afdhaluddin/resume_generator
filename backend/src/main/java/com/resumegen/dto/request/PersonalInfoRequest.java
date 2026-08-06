@@ -10,6 +10,12 @@ public class PersonalInfoRequest {
     private String linkedIn;
     private String website;
     private String jobTitle;
+    // Social links for academic template
+    private String twitter;
+    private String github;
+    private String orcid;
+    private String gitlab;
+    private String mastodon;
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
@@ -29,4 +35,14 @@ public class PersonalInfoRequest {
     public void setWebsite(String website) { this.website = website; }
     public String getJobTitle() { return jobTitle; }
     public void setJobTitle(String jobTitle) { this.jobTitle = jobTitle; }
+    public String getTwitter() { return twitter; }
+    public void setTwitter(String twitter) { this.twitter = twitter; }
+    public String getGithub() { return github; }
+    public void setGithub(String github) { this.github = github; }
+    public String getOrcid() { return orcid; }
+    public void setOrcid(String orcid) { this.orcid = orcid; }
+    public String getGitlab() { return gitlab; }
+    public void setGitlab(String gitlab) { this.gitlab = gitlab; }
+    public String getMastodon() { return mastodon; }
+    public void setMastodon(String mastodon) { this.mastodon = mastodon; }
 }
