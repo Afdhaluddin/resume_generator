@@ -1,6 +1,16 @@
 <template>
   <main class="max-w-4xl mx-auto px-4 py-8">
-    <StepIndicator :steps="steps" :current-step="currentStep" @go-to-step="goToStep" />
+    <div class="flex justify-between items-center mb-4">
+      <StepIndicator :steps="steps" :current-step="currentStep" @go-to-step="goToStep" />
+      <button
+        @click="fillDemoData"
+        class="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition text-sm font-medium flex items-center gap-2 shrink-0 ml-4"
+        title="Fill all fields with realistic demo data"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Autofill Demo Data
+      </button>
+    </div>
 
     <!-- Payment Required Modal -->
     <Transition name="fade">
@@ -763,6 +773,247 @@ const generatePdf = async () => {
     alert('Failed to generate resume. Please try again.')
   } finally {
     isGenerating.value = false
+  }
+}
+
+const fillDemoData = () => {
+  const template = props.selectedTemplate
+  const isAcademic = template === 'academic'
+  const isExecutive = template === 'executive'
+  const isCreative = template === 'creative'
+  const isLegal = template === 'classic'
+  const isMedical = false
+
+  // Personal Info
+  const firstNames = ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn']
+  const lastNames = ['Chen', 'Rodriguez', 'Patel', 'Kim', 'Singh', 'Okafor', 'Andersson']
+  const fn = firstNames[Math.floor(Math.random() * firstNames.length)]
+  const ln = lastNames[Math.floor(Math.random() * lastNames.length)]
+  const fullName = isExecutive ? `${fn} ${ln}` : `${fn} ${ln}`
+  const email = `${fn.toLowerCase()}.${ln.toLowerCase()}@email.com`
+
+  let jobTitle, company, company2, summary
+
+  if (isAcademic) {
+    jobTitle = 'Postdoctoral Researcher'
+    company = 'MIT CSAIL'
+    company2 = 'Stanford AI Lab'
+    summary = 'Research scientist with expertise in machine learning and natural language processing. Published 15+ papers in top-tier venues including NeurIPS, ICML, and ACL. Passionate about developing efficient AI systems that are accessible to everyone.'
+  } else if (isExecutive) {
+    jobTitle = 'Chief Technology Officer'
+    company = 'TechVenture Inc.'
+    company2 = 'Global Systems Corp'
+    summary = 'Visionary technology leader with 15+ years of experience driving digital transformation for Fortune 500 companies. Proven track record of building high-performing engineering teams and delivering multi-million dollar technology initiatives on time and under budget.'
+  } else if (isLegal) {
+    jobTitle = 'Senior Associate Attorney'
+    company = 'Skadden, Arps, Slate, Meagher & Flom LLP'
+    company2 = 'Cravath, Swaine & Moore LLP'
+    summary = 'Results-driven attorney with 8+ years of experience in corporate law, M&A transactions, and securities regulation. Successfully closed over $2B in transactions and advised clients on complex cross-border deals across 12 jurisdictions.'
+  } else if (isCreative) {
+    jobTitle = 'Senior Art Director'
+    company = 'Pentagram Design'
+    company2 = 'IDEO'
+    summary = 'Award-winning creative director with a passion for crafting visually compelling brand experiences. 10+ years leading design teams for global brands including Nike, Apple, and Spotify. Expert in visual identity, motion design, and interactive media.'
+  } else {
+    jobTitle = 'Senior Software Engineer'
+    company = 'Google'
+    company2 = 'Stripe'
+    summary = 'Full-stack engineer with 6+ years building scalable web applications serving millions of users. Expert in distributed systems, cloud architecture, and modern JavaScript frameworks. Passionate about clean code, developer experience, and open source.'
+  }
+
+  form.personalInfo.fullName = fullName
+  form.personalInfo.jobTitle = jobTitle
+  form.personalInfo.email = email
+  form.personalInfo.phone = '+1 (555) 123-4567'
+  form.personalInfo.city = isAcademic ? 'Cambridge' : (isExecutive ? 'New York' : 'San Francisco')
+  form.personalInfo.country = 'USA'
+  form.personalInfo.address = '123 Innovation Drive, Suite 400'
+  form.personalInfo.linkedIn = `linkedin.com/in/${fn.toLowerCase()}-${ln.toLowerCase()}`
+  form.personalInfo.website = `${fn.toLowerCase()}${ln.toLowerCase()}.dev`
+  form.personalInfo.twitter = `@${fn.toLowerCase()}${ln.charAt(0)}`
+  form.personalInfo.github = `${fn.toLowerCase()}${ln.toLowerCase()}`
+  form.personalInfo.orcid = isAcademic ? '0000-0001-2345-6789' : ''
+  form.personalInfo.gitlab = isAcademic ? `${fn.toLowerCase()}-lab` : ''
+  form.personalInfo.mastodon = ''
+
+  // Summary
+  form.summary = summary
+
+  // Experience
+  form.experience = []
+  const exp1 = {
+    company: company,
+    position: jobTitle,
+    startDate: 'Jan 2021',
+    endDate: 'Present',
+    description: isAcademic
+      ? 'Leading research on efficient transformer architectures and large language model optimization. Managing a team of 3 PhD students and 2 research assistants.'
+      : (isExecutive
+        ? 'Leading a 120-person engineering organization across 4 global offices. Responsible for product strategy, technical roadmap, and $50M annual budget.'
+        : 'Lead engineer responsible for core platform architecture serving 10M+ daily active users. Mentored 5 junior engineers and drove adoption of microservices.'),
+    achievements: isAcademic
+      ? ['Published 5 papers at NeurIPS and ICML', 'Secured $500K NSF research grant', 'Open-sourced library with 10K+ GitHub stars']
+      : (isExecutive
+        ? ['Grew engineering team from 40 to 120 in 18 months', 'Reduced infrastructure costs by 35% through cloud optimization', 'Launched 3 new product lines generating $12M ARR']
+        : ['Reduced API latency by 60% through caching optimization', 'Led migration from monolith to microservices', 'Built real-time data pipeline processing 1M events/sec']),
+    achievementsText: ''
+  }
+  exp1.achievementsText = exp1.achievements.map(a => `- ${a}`).join('\n')
+
+  const exp2 = {
+    company: company2,
+    position: isAcademic ? 'Research Assistant' : (isExecutive ? 'VP of Engineering' : 'Software Engineer'),
+    startDate: 'Jun 2018',
+    endDate: 'Dec 2020',
+    description: isAcademic
+      ? 'Conducted research on natural language understanding and semantic parsing under supervision of Prof. Yann LeCun.'
+      : (isExecutive
+        ? 'Led engineering teams building core platform infrastructure. Scaled systems to handle 100x traffic growth during product launch.'
+        : 'Full-stack development of customer-facing web applications using React, Node.js, and PostgreSQL. Collaborated with design and product teams.'),
+    achievements: isAcademic
+      ? ['Co-authored 3 journal publications', 'Developed novel attention mechanism improving BLEU scores by 15%']
+      : (isExecutive
+        ? ['Built engineering team from scratch to 40 engineers', 'Achieved 99.99% uptime SLA across all services']
+        : ['Shipped feature generating $2M additional ARR', 'Reduced page load time from 4s to 800ms']),
+    achievementsText: ''
+  }
+  exp2.achievementsText = exp2.achievements.map(a => `- ${a}`).join('\n')
+
+  form.experience.push(exp1, exp2)
+
+  // Education
+  form.education = []
+  if (isAcademic) {
+    form.education.push({
+      institution: 'Stanford University',
+      degree: 'Ph.D.',
+      fieldOfStudy: 'Computer Science',
+      startDate: '2014',
+      endDate: '2018',
+      description: 'Thesis: Efficient Attention Mechanisms for Large-Scale Language Models. Advisor: Prof. Christopher Manning. GPA: 3.95/4.0'
+    })
+    form.education.push({
+      institution: 'MIT',
+      degree: 'M.S.',
+      fieldOfStudy: 'Electrical Engineering & Computer Science',
+      startDate: '2012',
+      endDate: '2014',
+      description: 'Focus on Artificial Intelligence and Machine Learning. Graduated with Honors.'
+    })
+  } else if (isLegal) {
+    form.education.push({
+      institution: 'Harvard Law School',
+      degree: 'J.D.',
+      fieldOfStudy: 'Law',
+      startDate: '2012',
+      endDate: '2015',
+      description: 'Cum Laude. Harvard Law Review, Articles Editor. Moot Court Champion.'
+    })
+    form.education.push({
+      institution: 'Yale University',
+      degree: 'B.A.',
+      fieldOfStudy: 'Economics & Political Science',
+      startDate: '2008',
+      endDate: '2012',
+      description: 'Magna Cum Laude. Phi Beta Kappa. Debate Team Captain.'
+    })
+  } else {
+    form.education.push({
+      institution: 'Carnegie Mellon University',
+      degree: 'B.S.',
+      fieldOfStudy: 'Computer Science',
+      startDate: '2014',
+      endDate: '2018',
+      description: isAcademic ? 'GPA: 3.9/4.0. Research Assistant in NLP Lab.' : 'Dean\'s List. ACM Programming Contest Finalist.'
+    })
+    form.education.push({
+      institution: 'UC Berkeley',
+      degree: 'M.S.',
+      fieldOfStudy: isAcademic ? 'Artificial Intelligence' : 'Software Engineering',
+      startDate: '2018',
+      endDate: '2020',
+      description: 'Focus on distributed systems and machine learning.'
+    })
+  }
+
+  // Skills
+  if (isAcademic) {
+    form.skills = ['Python', 'PyTorch', 'TensorFlow', 'NLP', 'Deep Learning', 'LaTeX', 'CUDA', 'Distributed Training']
+    skillsText.value = form.skills.join(', ')
+  } else if (isLegal) {
+    form.skills = ['M&A Transactions', 'Securities Regulation', 'Contract Negotiation', 'Due Diligence', 'Cross-border Deals', 'Legal Research', 'Client Relations']
+    skillsText.value = form.skills.join(', ')
+  } else if (isExecutive) {
+    form.skills = ['Strategic Planning', 'Team Leadership', 'P&L Management', 'Digital Transformation', 'Stakeholder Management', 'Agile/Scrum', 'Cloud Architecture']
+    skillsText.value = form.skills.join(', ')
+  } else if (isCreative) {
+    form.skills = ['Adobe Creative Suite', 'Figma', 'Motion Design', 'Brand Identity', 'Typography', 'Art Direction', 'Prototyping']
+    skillsText.value = form.skills.join(', ')
+  } else {
+    form.skills = ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'AWS', 'Docker', 'PostgreSQL', 'GraphQL']
+    skillsText.value = form.skills.join(', ')
+  }
+
+  // Languages
+  form.languages = ['English (Native)', 'Spanish (Fluent)', 'Mandarin (Conversational)']
+  languagesText.value = form.languages.join(', ')
+
+  // Academic-specific fields
+  if (isAcademic) {
+    form.lifePhilosophy = 'Science is not only a disciple of reason but, also, one of romance and passion.'
+
+    form.projects = [
+      {
+        name: 'OpenEfficientNLP',
+        fundingAgency: 'NSF Grant #IIS-2045678',
+        duration: '2022 - 2024',
+        description: 'Open-source library for efficient NLP model inference. Achieved 3x speedup over baseline with no accuracy loss.'
+      },
+      {
+        name: 'GreenAI Initiative',
+        fundingAgency: 'EU Horizon 2020',
+        duration: '2021 - 2023',
+        description: 'Research project focused on reducing carbon footprint of large AI models through efficient training techniques.'
+      }
+    ]
+
+    form.proudOf = [
+      { title: 'NeurIPS Best Paper Award 2023', details: 'Recognized for breakthrough work on sub-quadratic attention mechanisms.' },
+      { title: 'Open Source Contributor (50K+ stars)', details: 'Core maintainer of popular ML libraries used by thousands of researchers worldwide.' }
+    ]
+
+    form.publications = {
+      books: ['J. Smith, Efficient Deep Learning. Academic Press, 2024.'],
+      journalArticles: [
+        'J. Smith et al., Fast Attention for Long Sequences, JMLR, vol. 25, 2023.',
+        'J. Smith, A Survey of Efficient Transformers, AI Review, vol. 12, 2022.'
+      ],
+      conferenceProceedings: [
+        'J. Smith and A. Doe, FlashAttention-3, NeurIPS 2023.',
+        'J. Smith et al., Memory-Efficient LLMs, ICML 2022.',
+        'J. Smith, Sparse Transformers, ACL 2021.'
+      ]
+    }
+    publicationsText.books = form.publications.books.join('\n')
+    publicationsText.journalArticles = form.publications.journalArticles.join('\n')
+    publicationsText.conferenceProceedings = form.publications.conferenceProceedings.join('\n')
+
+    form.referees = [
+      {
+        name: 'Prof. Yann LeCun',
+        institute: 'NYU / Meta AI',
+        email: 'yann@nyu.edu',
+        addressLine1: '60 Fifth Avenue',
+        addressLine2: 'New York, NY 10011'
+      },
+      {
+        name: 'Prof. Geoffrey Hinton',
+        institute: 'University of Toronto',
+        email: 'hinton@cs.toronto.edu',
+        addressLine1: "6 King's College Rd",
+        addressLine2: 'Toronto, ON M5S 3G4'
+      }
+    ]
   }
 }
 
